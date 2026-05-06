@@ -24,7 +24,7 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
 
   return (
     <main className="min-h-screen">
-      <header className="relative overflow-hidden border-b border-white/10 bg-[#071615] text-white">
+      <header className="relative overflow-hidden border-b border-white/10 bg-[#111318] text-white">
         <div className="lab-grid absolute inset-0 opacity-55" />
         <div className="relative mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 md:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -42,7 +42,7 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
             </Button>
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-lime-200">
+            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">
               {editableDemo ? `Editable ${category}` : `Demo ${demo!.number}`}
               {editableDemo ? ` · ${editableDemo.difficulty}` : ""}
             </p>

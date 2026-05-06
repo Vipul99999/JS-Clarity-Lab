@@ -18,12 +18,12 @@ const icons = {
 export default function Home() {
   return (
     <main className="min-h-screen">
-      <section className="relative overflow-hidden border-b border-white/10 bg-[#071615] text-white">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[#111318] text-white">
         <div className="lab-grid absolute inset-0 opacity-70" />
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-lime-200/70 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-cyan-200/70 via-55% to-rose-300/60" />
         <div className="relative mx-auto flex max-w-7xl flex-col gap-6 px-4 py-10 md:px-6 md:py-14">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-lime-200">JS Clarity Lab</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">JS Clarity Lab</p>
             <h1 className="mt-2 max-w-4xl text-4xl font-semibold tracking-normal text-white md:text-6xl">
               Debug confusing JavaScript behavior like it appears in real products.
             </h1>
@@ -40,7 +40,7 @@ export default function Home() {
               const Icon = item.icon;
               return (
                 <div key={item.title} className="rounded-lg border border-white/10 bg-white/[0.07] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.16)]">
-                  <Icon className="h-5 w-5 text-lime-200" />
+                  <Icon className="h-5 w-5 text-cyan-200" />
                   <div className="mt-2 font-semibold text-white">{item.title}</div>
                   <p className="text-sm leading-6 text-white/68">{item.body}</p>
                 </div>
@@ -54,13 +54,13 @@ export default function Home() {
               { label: "real-world traps", value: "Node + UI + tests" }
             ].map((stat) => (
               <div key={stat.label} className="rounded-md border border-white/10 bg-black/18 px-3 py-2 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
-                <span className="font-semibold text-lime-200">{stat.value}</span>
+                <span className="font-semibold text-cyan-200">{stat.value}</span>
                 <span className="ml-2 text-white/66">{stat.label}</span>
               </div>
             ))}
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/analyze" className="premium-link inline-flex h-10 items-center justify-center gap-2 rounded-md bg-lime-200 px-4 py-2 text-sm font-semibold text-[#071615] transition-all hover:-translate-y-0.5 hover:bg-lime-100">
+            <Link href="/analyze" className="premium-link inline-flex h-10 items-center justify-center gap-2 rounded-md bg-cyan-200 px-4 py-2 text-sm font-semibold text-[#111318] transition-all hover:-translate-y-0.5 hover:bg-cyan-100">
               <Code2 className="h-4 w-4" />
               Paste code analyzer
             </Link>

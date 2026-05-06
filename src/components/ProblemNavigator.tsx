@@ -31,7 +31,7 @@ const problems = [
 
 export function ProblemNavigator() {
   return (
-    <section className="border-b border-black/10 bg-[#faf7ec]/80">
+    <section className="border-b border-black/10 bg-[#eef7fb]/80">
       <div className="mx-auto max-w-7xl px-4 py-8 md:px-6">
         <div className="mb-3">
           <h2 className="text-xl font-semibold">Start from the bug you actually see</h2>
