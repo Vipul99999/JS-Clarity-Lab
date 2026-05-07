@@ -5,6 +5,11 @@ import { analyzeCode } from "@/analyzer/analyzeCode";
 import { buildSimulation } from "@/analyzer/buildSimulation";
 import type { AnalysisResult } from "@/analyzer/patternTypes";
 import { AnalysisSummary } from "./AnalysisSummary";
+import { AnalyzerActionPlan } from "./AnalyzerActionPlan";
+import { AnalyzerClarityChecklist } from "./AnalyzerClarityChecklist";
+import { AnalyzerConfidenceExplainer } from "./AnalyzerConfidenceExplainer";
+import { AnalyzerNextSteps } from "./AnalyzerNextSteps";
+import { AnalyzerInsights } from "./AnalyzerInsights";
 import { CodeInput } from "./CodeInput";
 import { CuratedExamples } from "./CuratedExamples";
 import { DebugReport } from "./DebugReport";
@@ -12,6 +17,7 @@ import { LimitationsPanel } from "./LimitationsPanel";
 import { PatternHighlight } from "./PatternHighlight";
 import { RecentSnippets, type RecentSnippet } from "./RecentSnippets";
 import { Visualizer } from "./Visualizer";
+import { limitText, MAX_RECENT_SNIPPETS, safeJsonParse, safeSnippetTitle, writeBoundedLocalStorage } from "@/security/privacy";
 
 const example = `console.log("A");
 
@@ -35,7 +41,7 @@ export function AnalysisLab() {
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(recentKey);
-      if (stored) setRecent(JSON.parse(stored) as RecentSnippet[]);
+      if (stored) setRecent(safeJsonParse<RecentSnippet[]>(stored, []).slice(0, MAX_RECENT_SNIPPETS));
     } catch {
       setRecent([]);
     }
@@ -43,16 +49,16 @@ export function AnalysisLab() {
 
   function saveRecent(nextCode: string, nextResult: AnalysisResult) {
     if (!nextResult.ok) return;
-    const firstLine = nextCode.trim().split("\n")[0] ?? "Untitled snippet";
+    const storedCode = limitText(nextCode);
     const snippet: RecentSnippet = {
       id: `${Date.now()}`,
-      title: firstLine.slice(0, 70),
-      code: nextCode,
+      title: safeSnippetTitle(storedCode),
+      code: storedCode,
       confidence: nextResult.confidence
     };
     setRecent((items) => {
-      const nextItems = [snippet, ...items.filter((item) => item.code !== nextCode)].slice(0, 8);
-      window.localStorage.setItem(recentKey, JSON.stringify(nextItems));
+      const nextItems = [snippet, ...items.filter((item) => item.code !== storedCode)].slice(0, MAX_RECENT_SNIPPETS);
+      writeBoundedLocalStorage(recentKey, nextItems);
       return nextItems;
     });
   }
@@ -100,6 +106,11 @@ export function AnalysisLab() {
         <AnalysisSummary result={result} />
         <LimitationsPanel result={result} />
       </div>
+      <AnalyzerActionPlan result={result} />
+      <AnalyzerClarityChecklist result={result} />
+      <AnalyzerConfidenceExplainer result={result} />
+      <AnalyzerNextSteps result={result} canVisualize={Boolean(simulation)} onVisualize={() => setShowVisualization(true)} />
+      <AnalyzerInsights result={result} />
       <PatternHighlight result={result} />
       <DebugReport result={result} />
       {showVisualization && simulation ? <Visualizer demo={simulation} /> : null}

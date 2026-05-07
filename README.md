@@ -1,96 +1,207 @@
 # JS Clarity Lab
 
-A visual reasoning tool for confusing JavaScript behavior.
+JS Clarity Lab is a visual reasoning tool for confusing JavaScript and Node.js runtime behavior.
 
-JS Clarity Lab helps developers understand tricky async output, hidden runtime bugs, memory leaks, performance stalls, and real-world Node/browser timing issues through prediction, animation, and short explanations.
+It helps developers answer questions like:
 
-It is not a full JavaScript tutorial and it is not a code execution sandbox. The product focuses on the cases that make developers stop and ask: "Why did JavaScript do that?"
+- Why did this output print first?
+- Why did `await` not wait?
+- Why is my timer late?
+- Why is my API slow?
+- Why is memory growing?
+- How does Node.js move work through queues, I/O, streams, and the thread pool?
 
-## What Makes It Valuable
+The product is not a generic tutorial site, a full code editor, or a dangerous arbitrary JavaScript executor. It is a clarity product: curated scenarios, safe parameter changes, paste-code pattern analysis, visual execution, prediction, explanations, real-world bug recipes, and trust labels.
 
-- **Instant clarity:** open a demo or paste code and get a fast explanation of the likely async behavior.
-- **Interactive thinking:** predict the output first, then run the visual timeline.
-- **Real-world focus:** every demo explains where the issue appears in production code.
-- **Safe experimentation:** editable cases use controlled parameters instead of arbitrary code execution.
-- **Trust-first analyzer:** pasted code is parsed and pattern-matched, not executed.
+## Product Promise
 
-## Product Surface
+Change the situation, predict the result, see the runtime timeline, and understand why it happened.
 
-### Guided Demos
+The strongest product loop is:
 
-50 focused concepts across:
+```txt
+Concept -> Predict -> Run -> Inspect -> Fix / Real-world use
+```
 
-- Event Loop
-- Promises
-- Async/Await
-- Memory
-- Performance
-- Node.js Runtime
-- Real-World Bugs
+Every main surface is designed around that loop so beginners do not feel lost and experienced developers can still inspect deeper runtime details.
 
-### Editable Cases
+## Who It Is For
 
-12 controlled playground cases where users can change safe parameters such as timer delay, promise count, await mode, API delay, cleanup behavior, and microtask count.
+- Students learning asynchronous JavaScript.
+- Teachers explaining the event loop visually.
+- Frontend developers debugging confusing browser async output.
+- Backend developers learning Node.js runtime behavior.
+- Professionals diagnosing slow APIs, flaky tests, memory leaks, stream pressure, worker-pool pressure, and queue ordering.
+- Interview candidates practicing runtime explanations.
 
-Changing a control immediately updates:
+## What Real Problems It Solves
 
-- Generated code
-- Visual timeline
-- Prediction question
-- Explanation
-- Difference summary
-- Shareable URL state
+JS Clarity Lab focuses on high-confusion, high-value behavior:
 
-### Paste Code Analyzer
+- Promises and timers printing in unexpected order.
+- `process.nextTick`, microtasks, timers, I/O, and `setImmediate` priority in Node.js.
+- Missing `await`, missing promise `return`, async `forEach`, and promise failure handling.
+- Flaky tests caused by queued work.
+- Slow APIs caused by sequential awaits, blocking CPU work, large JSON parsing, or thread pool saturation.
+- Memory growth caused by intervals, event listeners, caches, closures, streams, and pending promises.
+- Stream backpressure and large file handling.
+- Safe security teaching around injection, validation, rate limiting, and dependency risk.
 
-The analyzer supports partial visualization for known patterns:
+## Product Areas
 
-- `console.log`
-- `setTimeout`
-- `setInterval`
-- `queueMicrotask`
-- `Promise.resolve().then`
-- `Promise.reject().catch`
-- simplified `Promise.all`
-- `async` / `await`
-- flat function calls
+### 1. Clarity Cases
 
-It clearly shows limitations instead of pretending to be a full runtime debugger.
+Guided demos for confusing JavaScript behavior. Each case includes:
+
+- Short concept.
+- Prediction question.
+- Visual event timeline.
+- Explanation.
+- Common wrong assumption.
+- Real-world usage.
+- Recommended next case.
+
+### 2. Try Variations
+
+Controlled editable demos where the user changes safe parameters instead of arbitrary code:
+
+- Timer delay.
+- Promise count.
+- Output labels.
+- Await mode.
+- API delays.
+- Cleanup on/off.
+- Microtask count.
+- Cache size.
+
+Changing a control regenerates:
+
+- Code.
+- Timeline.
+- Prediction.
+- Explanation.
+- Difference summary.
+- Shareable URL state.
+
+### 3. Analyze Code
+
+A paste-code analyzer that parses JavaScript with Babel and detects supported async patterns.
+
+It can show:
+
+- Likely output.
+- Risk found.
+- Why it happens.
+- Fix suggestion.
+- Matching demo or Node scenario.
+- Confidence and limitation details.
+
+Important: pasted code is parsed and pattern-matched. It is not executed.
+
+### 4. Node Runtime Lab
+
+An advanced visual playground for Node.js runtime internals:
+
+- Call stack.
+- `process.nextTick` queue.
+- Microtask queue.
+- Timer queue.
+- I/O poll queue.
+- Check queue.
+- Close queue.
+- Thread pool.
+- Streams and backpressure.
+- Console output.
+- Memory and performance panels.
+- Debug inspector.
+- Problem vs fixed comparison.
+
+The current Node scenario library covers 30 cases across fundamentals, async, event loop, files, streams, buffers, memory, performance, HTTP, errors, testing, security, deployment, and interviews.
+
+## Key Features
+
+- 50 guided demos.
+- 12 editable controlled cases.
+- 30 Node.js runtime scenarios.
+- Visual event loop simulation.
+- Prediction-first learning.
+- Paste-code pattern analyzer.
+- Analyzer-to-Node scenario bridge.
+- Real-world bug recipes.
+- Production debugging playbooks.
+- Symptom search.
+- Exportable debug notes.
+- Progress and learning path memory in local storage.
+- Quality dashboard and runtime coverage matrix.
+- Trust badges: fully simulated, partially simulated, pattern detected only, unsupported.
+- Security hardening with headers, no backend, no arbitrary code execution, and clear limitations.
+- SEO metadata, sitemap, robots rules, and structured data.
+- Focused SEO topic landing pages.
+- Launch package with tagline, screenshots plan, demo video plan, release checklist, and Vercel deployment notes.
+
+## Safety Model
+
+JS Clarity Lab is safe by design:
+
+- It does not execute arbitrary pasted JavaScript.
+- It does not provide login, backend data storage, or marketplace behavior.
+- Editable demos are parameter-driven and validated with Zod.
+- Analyzer results are partial simulations with visible confidence labels.
+- Unsupported constructs are surfaced instead of hidden.
+- Security headers are configured through Next.js.
+
+Known limitations are intentional and visible:
+
+- No full JavaScript runtime emulation.
+- No complete browser or Node debugger.
+- No arbitrary external API execution.
+- No full closure or heap analysis from pasted code.
+- Complex loops, recursion, DOM behavior, and framework-specific runtime effects are not fully simulated.
 
 ## Tech Stack
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- shadcn-style UI primitives
-- Zustand
-- Framer Motion
-- Monaco Editor
-- Recharts
-- Babel parser/traverse/types
-- Prettier
-- Zod
-- Vitest
-- Playwright
+- Next.js App Router.
+- React.
+- TypeScript.
+- Tailwind CSS.
+- shadcn-style UI primitives.
+- Zustand.
+- Framer Motion.
+- Monaco Editor.
+- Recharts.
+- Babel parser, traverse, and types.
+- Prettier.
+- Zod.
+- Vitest.
+- Playwright.
 
 ## Project Structure
 
 ```txt
 src/
-  app/                 Next.js routes
-  analyzer/            AST parsing and pattern extraction
-  components/          UI and visualizer components
-  demos/               Guided and editable demo catalog
-  editable/            Editable case schemas and generators
-  engine/              Visual event engine
+  app/                 Next.js routes, SEO metadata, robots, sitemap
+  analyzer/            AST parsing, pattern extraction, confidence, action output
+  components/          UI, playground, visualizer, dashboards, docs-like panels
+  demos/               Guided demos and editable demo catalog
+  editable/            Editable schemas, generators, validation
+  engine/              Visual event engine and trace summarization
+  nodePlayground/      Node scenario data, authoring helpers, runtime diagnosis
   patterns/            Analyzer pattern helpers
+  product/             Product architecture, routes, learning paths
+  security/            Headers, privacy, clipboard, posture metadata
   simulator/           Pattern-to-event simulation
-  store/               Zustand stores
-  utils/               URL state helpers
+  store/               Zustand stores and local progress
+  utils/               URL state, sharing, helper utilities
+docs/
+  PRODUCT.md
+  ARCHITECTURE.md
+  SAFETY_SECURITY.md
+  SEO.md
+  OPERATIONS.md
+  CONTRIBUTING.md
 tests/
   browser/             Playwright smoke tests
-  *.test.ts            Unit tests
+  *.test.ts            Unit, contract, quality, security, SEO tests
 ```
 
 ## Getting Started
@@ -101,7 +212,7 @@ Install dependencies:
 pnpm install
 ```
 
-Run the development server:
+Run development server:
 
 ```bash
 pnpm dev
@@ -125,7 +236,7 @@ Run production locally:
 pnpm start
 ```
 
-## Quality Checks
+## Quality Commands
 
 ```bash
 pnpm typecheck
@@ -134,36 +245,51 @@ pnpm build
 pnpm qa:browser
 ```
 
-Current coverage verifies:
+The test suite protects:
 
-- Visual event engine behavior
-- Editable parameter validation
-- URL state encoding/decoding
-- Analyzer pattern extraction
-- Demo catalog integrity
-- Browser rendering of homepage, analyzer, editable demos, and new real-world demos
+- Visual engine behavior.
+- Editable validation.
+- URL state encoding and decoding.
+- Analyzer pattern extraction.
+- Demo and Node scenario quality contracts.
+- Product hardening rules.
+- Security headers.
+- SEO sitemap and robots output.
+- Browser smoke rendering.
 
-## Safety Model
+## SEO
 
-JS Clarity Lab does not execute arbitrary pasted JavaScript.
+The product includes:
 
-The analyzer parses code into an AST, extracts known async patterns, and builds a simplified visual simulation. This keeps the product safe, explainable, and honest about what it can and cannot infer.
+- Global metadata in `src/app/layout.tsx`.
+- Per-route metadata for major product pages.
+- Dynamic metadata for `/demo/[id]`.
+- JSON-LD structured data for the software application.
+- `src/app/sitemap.ts` for all major routes and demo pages.
+- `src/app/robots.ts` with the quality dashboard excluded from search.
 
-Unsupported or limited areas include:
+Set the canonical production URL with:
 
-- complex loops
-- recursion
-- DOM execution
-- real browser runtime debugging
-- external APIs
-- arbitrary user code execution
-- full closure and memory analysis
+```bash
+NEXT_PUBLIC_SITE_URL=https://your-domain.com
+```
 
-## Positioning
+See `docs/SEO.md` for the full SEO model.
 
-JS Clarity Lab is for developers who want to quickly understand confusing behavior in modern JavaScript, React, browser APIs, and Node.js.
+## Documentation
 
-It is built around one promise:
+- `docs/PRODUCT.md` explains positioning, user jobs, surfaces, and roadmap.
+- `docs/ARCHITECTURE.md` explains code architecture and data flow.
+- `docs/SAFETY_SECURITY.md` explains the trust and security model.
+- `docs/SEO.md` explains metadata, sitemap, robots, and content strategy.
+- `docs/OPERATIONS.md` explains local development, QA, deployment, and release checks.
+- `docs/CONTRIBUTING.md` explains how to add or improve cases safely.
+- `docs/LAUNCH_PACKAGE.md` contains the tagline, launch copy, screenshots plan, demo GIF/video plan, release checklist, and Vercel notes.
 
-> Change the situation, predict the result, see the timeline, understand why it happened.
+## Product Positioning
 
+JS Clarity Lab is not trying to replace Chrome DevTools, VS Code, Node inspector, or a full runtime debugger.
+
+It is built for the moment before deep debugging, when the developer needs a clear mental model:
+
+> I saw something confusing. Show me the order, the reason, the risk, and the fix.

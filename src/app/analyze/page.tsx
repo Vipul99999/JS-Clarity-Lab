@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { AnalysisLab } from "@/components/AnalysisLab";
+import { ClarityGuardrails } from "@/components/ClarityGuardrails";
 import { Button } from "@/components/ui/button";
+import { LazyAnalysisLab } from "@/components/LazyAnalysisLab";
+
+export const metadata: Metadata = {
+  title: "Analyze JavaScript Async Code",
+  description:
+    "Paste JavaScript code to detect supported async patterns, estimate likely output, visualize queues, and get practical fix suggestions without executing user code.",
+  alternates: {
+    canonical: "/analyze"
+  },
+  openGraph: {
+    title: "Analyze JavaScript Async Code | JS Clarity Lab",
+    description:
+      "A safe paste-code analyzer for confusing JavaScript async behavior, queue ordering, risk flags, and matching visual demos.",
+    url: "/analyze",
+    type: "website"
+  }
+};
 
 export default function AnalyzePage() {
   return (
@@ -16,7 +34,7 @@ export default function AnalyzePage() {
             </Link>
           </Button>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">Phase 4 Analyzer</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-200">Analyze Code</p>
             <h1 className="mt-1 max-w-4xl text-3xl font-semibold tracking-normal text-white md:text-5xl">Paste code. Get a visual debug report you can trust.</h1>
             <p className="mt-3 max-w-3xl leading-7 text-white/72">
               This is partial understanding by design. It parses JavaScript, extracts supported patterns, and teaches the queue model without executing arbitrary code.
@@ -24,7 +42,10 @@ export default function AnalyzePage() {
           </div>
         </div>
       </header>
-      <AnalysisLab />
+      <section className="mx-auto max-w-7xl px-4 pt-5 md:px-6">
+        <ClarityGuardrails />
+      </section>
+      <LazyAnalysisLab />
     </main>
   );
 }

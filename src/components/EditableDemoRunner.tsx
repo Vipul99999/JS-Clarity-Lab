@@ -6,6 +6,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { CallStack } from "./CallStack";
 import { ClarityBrief } from "./ClarityBrief";
 import { CodePanel } from "./CodePanel";
+import { CompletionCard } from "./CompletionCard";
 import { CompareMode } from "./CompareMode";
 import { ConsolePanel } from "./ConsolePanel";
 import { DiffSummary } from "./DiffSummary";
@@ -16,6 +17,7 @@ import { ProductionPlaybook } from "./ProductionPlaybook";
 import { QueuePanel } from "./QueuePanel";
 import { ShareState } from "./ShareState";
 import { TimelineControls } from "./TimelineControls";
+import { TraceSummaryPanel } from "./TraceSummaryPanel";
 import { VariantSelector } from "./VariantSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { validateWithDefaults } from "@/editable/schemas";
@@ -23,6 +25,8 @@ import type { EditableDemo } from "@/editable/types";
 import { getStateAtStep } from "@/engine/getStateAtStep";
 import type { Demo } from "@/engine/types";
 import { useEditableDemoStore } from "@/store/useEditableDemoStore";
+import { useLearningProgress } from "@/lib/learningProgress";
+import { editableDemos } from "@/demos";
 import { decodeDemoState } from "@/utils/decodeDemoState";
 import { encodeDemoState } from "@/utils/encodeDemoState";
 
@@ -31,6 +35,7 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { params, currentStep, isPlaying, speed, setParams, resetParams, setCurrentStep, play, pause, resetTimeline, setSpeed } = useEditableDemoStore();
+  const { upsert, markComplete } = useLearningProgress();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -41,6 +46,17 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
     setErrors(result.errors);
     setSubmitted(false);
   }, [demo, resetParams, searchParams]);
+
+  useEffect(() => {
+    upsert({
+      id: demo.id,
+      type: "editable",
+      title: demo.title,
+      href: `/demo/${demo.id}`,
+      category: demo.category,
+      completed: false
+    });
+  }, [demo.category, demo.id, demo.title, upsert]);
 
   const safeParams = useMemo(() => {
     const result = validateWithDefaults(demo.schema, params, demo.defaultParams);
@@ -85,6 +101,18 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
     return () => window.clearTimeout(timeout);
   }, [currentStep, isPlaying, max, pause, setCurrentStep, speed]);
 
+  useEffect(() => {
+    if (submitted || currentStep >= max) {
+      markComplete({
+        id: demo.id,
+        type: "editable",
+        title: demo.title,
+        href: `/demo/${demo.id}`,
+        category: demo.category
+      });
+    }
+  }, [currentStep, demo.category, demo.id, demo.title, markComplete, max, submitted]);
+
   function updateParams(next: Record<string, unknown>) {
     const result = validateWithDefaults(demo.schema, next, demo.defaultParams);
     setErrors(result.errors);
@@ -116,6 +144,7 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
     events: generated.events,
     explanation: generated.explanation
   };
+  const nextEditable = editableDemos[editableDemos.findIndex((item) => item.id === demo.id) + 1] ?? editableDemos[0];
 
   return (
     <div className="space-y-4">
@@ -167,6 +196,7 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
           </CardContent>
         </Card>
       ) : null}
+      <TraceSummaryPanel events={generated.events} />
       <VariantSelector demoId={demo.id} params={safeParams} onApply={updateParams} />
       <EditableControls controls={demo.controls} params={safeParams} defaultParams={demo.defaultParams} errors={errors} onChange={updateParams} onReset={resetAll} />
       <ShareState pathname={pathname} params={safeParams} defaultParams={demo.defaultParams} controls={demo.controls} />
@@ -191,6 +221,15 @@ export function EditableDemoRunner({ demo }: { demo: EditableDemo }) {
       </div>
       <ProductionPlaybook demoId={demo.id} />
       <CompareMode defaultEvents={generated.defaultEvents} currentEvents={generated.events} defaultExplanation={generated.defaultExplanation} currentExplanation={generated.explanation} />
+      <CompletionCard
+        completed={submitted || currentStep >= max}
+        title={demo.title}
+        learned={generated.explanation.summary}
+        realWorld={generated.explanation.realWorld}
+        challenge="Change one control, predict again, then compare what changed."
+        nextHref={`/demo/${nextEditable.id}`}
+        nextTitle={nextEditable.title}
+      />
     </div>
   );
 }

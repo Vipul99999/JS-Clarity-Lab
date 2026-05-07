@@ -7,9 +7,10 @@ type QueuePanelProps = {
   title: string;
   items: string[];
   emptyLabel: string;
+  helpText?: string;
 };
 
-export function QueuePanel({ title, items, emptyLabel }: QueuePanelProps) {
+export function QueuePanel({ title, items, emptyLabel, helpText }: QueuePanelProps) {
   return (
     <Card className="min-h-[132px]">
       <CardHeader className="border-b pb-3">
@@ -29,7 +30,12 @@ export function QueuePanel({ title, items, emptyLabel }: QueuePanelProps) {
             </motion.div>
           ))}
         </AnimatePresence>
-        {items.length === 0 ? <p className="text-sm text-muted-foreground">{emptyLabel}</p> : null}
+        {items.length === 0 ? (
+          <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-muted-foreground">
+            <p>{emptyLabel}</p>
+            {helpText ? <p className="mt-1 text-xs">{helpText}</p> : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

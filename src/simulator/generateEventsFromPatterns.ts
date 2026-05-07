@@ -10,6 +10,11 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
   const timers = patterns.filter((pattern) => pattern.type === "setTimeout");
   const intervals = patterns.filter((pattern) => pattern.type === "setInterval");
   const promiseAlls = patterns.filter((pattern) => pattern.type === "promise_all");
+  const promiseAllSettleds = patterns.filter((pattern) => pattern.type === "promise_allSettled");
+  const promiseRaces = patterns.filter((pattern) => pattern.type === "promise_race");
+  const promiseAnys = patterns.filter((pattern) => pattern.type === "promise_any");
+  const nextTicks = patterns.filter((pattern) => pattern.type === "process_nextTick");
+  const immediates = patterns.filter((pattern) => pattern.type === "setImmediate");
   const awaits = patterns.filter((pattern) => pattern.type === "await");
   const asyncFns = patterns.filter((pattern) => pattern.type === "async_function");
   const calls = patterns.filter((pattern) => pattern.type === "function_call");
@@ -37,6 +42,11 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
       events.push({ type: "webapi_add", name: `interval line ${pattern.line}`, detail: `${pattern.delay}ms repeating` });
       events.push({ type: "timer_add", name: pattern.callbackLabel ? `interval: ${pattern.callbackLabel}` : `interval line ${pattern.line}`, delay: pattern.delay });
     }
+    if (pattern.type === "setImmediate") {
+      events.push({ type: "line", line: pattern.line, explain: "setImmediate schedules a Node check-phase callback. The analyzer shows it after timers in this simplified model unless I/O context is known." });
+      events.push({ type: "webapi_add", name: `setImmediate line ${pattern.line}`, detail: "check phase" });
+      events.push({ type: "timer_add", name: pattern.callbackLabel ? `immediate: ${pattern.callbackLabel}` : `immediate line ${pattern.line}` });
+    }
     if (pattern.type === "queueMicrotask") {
       events.push({ type: "line", line: pattern.line, explain: "queueMicrotask registers a microtask directly." });
       events.push({ type: "microtask_add", name: pattern.callbackLabel ? `queueMicrotask: ${pattern.callbackLabel}` : `queueMicrotask line ${pattern.line}` });
@@ -44,6 +54,10 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     if (pattern.type === "promise_then") {
       events.push({ type: "line", line: pattern.line, explain: "Promise.resolve().then registers a microtask." });
       events.push({ type: "microtask_add", name: pattern.callbackLabel ? `then: ${pattern.callbackLabel}` : `then line ${pattern.line}` });
+    }
+    if (pattern.type === "process_nextTick") {
+      events.push({ type: "line", line: pattern.line, explain: "process.nextTick schedules a Node-specific callback that runs before Promise microtasks." });
+      events.push({ type: "microtask_add", name: pattern.callbackLabel ? `nextTick: ${pattern.callbackLabel}` : `nextTick line ${pattern.line}` });
     }
     if (pattern.type === "promise_catch") {
       events.push({ type: "line", line: pattern.line, explain: "Promise.reject().catch registers rejection handling as a microtask." });
@@ -53,6 +67,21 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
       events.push({ type: "line", line: pattern.line, explain: `Promise.all starts ${pattern.itemCount || "multiple"} input promise(s). This is a simplified model.` });
       events.push({ type: "webapi_add", name: `Promise.all line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
       events.push({ type: "microtask_add", name: `Promise.all result line ${pattern.line}` });
+    }
+    if (pattern.type === "promise_allSettled") {
+      events.push({ type: "line", line: pattern.line, explain: `Promise.allSettled waits for ${pattern.itemCount || "all"} input promise(s) and keeps both fulfilled and rejected outcomes.` });
+      events.push({ type: "webapi_add", name: `Promise.allSettled line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
+      events.push({ type: "microtask_add", name: `Promise.allSettled result line ${pattern.line}` });
+    }
+    if (pattern.type === "promise_race") {
+      events.push({ type: "line", line: pattern.line, explain: `Promise.race settles with the first settled input among ${pattern.itemCount || "multiple"} promise(s). It does not cancel slower work by itself.` });
+      events.push({ type: "webapi_add", name: `Promise.race line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
+      events.push({ type: "microtask_add", name: `Promise.race first settlement line ${pattern.line}` });
+    }
+    if (pattern.type === "promise_any") {
+      events.push({ type: "line", line: pattern.line, explain: `Promise.any waits for the first fulfilled input among ${pattern.itemCount || "multiple"} promise(s), ignoring early rejections.` });
+      events.push({ type: "webapi_add", name: `Promise.any line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
+      events.push({ type: "microtask_add", name: `Promise.any first fulfillment line ${pattern.line}` });
     }
     if (pattern.type === "async_map") {
       events.push({ type: "line", line: pattern.line, explain: "Array.map with an async callback creates promises for each item. This model does not expand every item." });
@@ -66,10 +95,10 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
 
   events.push({ type: "stack_pop", name: "global" });
 
-  for (const pattern of [...promiseThens, ...promiseCatches, ...queuedMicrotasks]) {
-    const prefix = pattern.type === "promise_then" ? "then" : pattern.type === "promise_catch" ? "catch" : "queueMicrotask";
+  for (const pattern of [...nextTicks, ...promiseThens, ...promiseCatches, ...queuedMicrotasks]) {
+    const prefix = pattern.type === "promise_then" ? "then" : pattern.type === "promise_catch" ? "catch" : pattern.type === "process_nextTick" ? "nextTick" : "queueMicrotask";
     const name = pattern.callbackLabel ? `${prefix}: ${pattern.callbackLabel}` : `${prefix} line ${pattern.line}`;
-    events.push({ type: "microtask_run", name, explain: "Microtasks run before timer callbacks." });
+    events.push({ type: "microtask_run", name, explain: pattern.type === "process_nextTick" ? "Node drains process.nextTick before Promise microtasks." : "Microtasks run before timer callbacks." });
     if (pattern.callbackLabel) events.push({ type: "console", value: pattern.callbackLabel });
     events.push({ type: "stack_pop", name });
   }
@@ -78,6 +107,30 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     const name = `Promise.all result line ${pattern.line}`;
     events.push({ type: "microtask_run", name, explain: "Simplified Promise.all result handling runs as a microtask after inputs settle." });
     events.push({ type: "webapi_remove", name: `Promise.all line ${pattern.line}` });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of promiseAllSettleds) {
+    const name = `Promise.allSettled result line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "allSettled keeps every fulfilled/rejected outcome instead of failing fast." });
+    events.push({ type: "webapi_remove", name: `Promise.allSettled line ${pattern.line}` });
+    events.push({ type: "console", value: "allSettled outcomes ready" });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of promiseRaces) {
+    const name = `Promise.race first settlement line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "race settles with the first fulfilled or rejected input. Slower work may still continue." });
+    events.push({ type: "webapi_remove", name: `Promise.race line ${pattern.line}` });
+    events.push({ type: "console", value: "race settled first" });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of promiseAnys) {
+    const name = `Promise.any first fulfillment line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "any fulfills with the first success and rejects only if every input rejects." });
+    events.push({ type: "webapi_remove", name: `Promise.any line ${pattern.line}` });
+    events.push({ type: "console", value: "any fulfilled first" });
     events.push({ type: "stack_pop", name });
   }
 
@@ -104,6 +157,14 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     events.push({ type: "stack_pop", name });
   }
 
+  for (const pattern of immediates) {
+    const name = pattern.callbackLabel ? `immediate: ${pattern.callbackLabel}` : `immediate line ${pattern.line}`;
+    events.push({ type: "webapi_remove", name: `setImmediate line ${pattern.line}` });
+    events.push({ type: "timer_run", name, explain: "setImmediate is modeled as a Node check-phase callback after this turn." });
+    if (pattern.callbackLabel) events.push({ type: "console", value: pattern.callbackLabel });
+    events.push({ type: "stack_pop", name });
+  }
+
   if (patterns.length === 0) {
     events.push({ type: "line", line: 1, explain: "No supported async patterns were detected." });
   }
@@ -112,7 +173,7 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     events.push({ type: "line", line: asyncFns[0].line, explain: "Async declarations alone do not execute until called." });
   }
 
-  if (syncLogs.length === 0 && promiseThens.length === 0 && promiseCatches.length === 0 && queuedMicrotasks.length === 0 && timers.length === 0 && intervals.length === 0 && awaits.length === 0 && promiseAlls.length === 0) {
+  if (syncLogs.length === 0 && promiseThens.length === 0 && promiseCatches.length === 0 && queuedMicrotasks.length === 0 && timers.length === 0 && intervals.length === 0 && awaits.length === 0 && promiseAlls.length === 0 && promiseAllSettleds.length === 0 && promiseRaces.length === 0 && promiseAnys.length === 0 && nextTicks.length === 0 && immediates.length === 0) {
     events.push({ type: "console", value: "No simulated console output" });
   }
 
@@ -122,21 +183,25 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
 export function predictionFromPatterns(patterns: ExtractedPattern[]): Prediction {
   const sync = patterns.flatMap((pattern) => (pattern.type === "console" && pattern.phase === "sync" ? [pattern.value] : []));
   const micro = patterns.flatMap((pattern) =>
-    (pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask") && pattern.callbackLabel ? [pattern.callbackLabel] : []
+    (pattern.type === "process_nextTick" || pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask") && pattern.callbackLabel ? [pattern.callbackLabel] : []
   );
   const timers = patterns
     .flatMap((pattern) => ((pattern.type === "setTimeout" || pattern.type === "setInterval") && pattern.callbackLabel ? [pattern] : []))
     .sort((a, b) => a.delay - b.delay || a.line - b.line)
     .map((pattern) => pattern.callbackLabel)
     .filter((value): value is string => Boolean(value));
-  const correct: string[] = [...sync, ...micro, ...timers];
+  const combinators = patterns.flatMap((pattern) =>
+    pattern.type === "promise_allSettled" ? ["allSettled outcomes ready"] : pattern.type === "promise_race" ? ["race settled first"] : pattern.type === "promise_any" ? ["any fulfilled first"] : []
+  );
+  const immediates = patterns.flatMap((pattern) => (pattern.type === "setImmediate" && pattern.callbackLabel ? [pattern.callbackLabel] : []));
+  const correct: string[] = [...sync, ...micro, ...combinators, ...timers, ...immediates];
   if (correct.length === 0) return { type: "mcq", question: "Did the analyzer find supported console output?", options: ["Yes", "No"], correct: "No" };
   const options = correct.length > 1 ? [correct[correct.length - 1], ...correct.slice(0, -1)] : correct;
   return { type: "order", question: "What output order does the simplified simulator predict?", options, correct };
 }
 
 export function explanationFromPatterns(patterns: ExtractedPattern[]): Explanation {
-  const hasPromise = patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all"].includes(pattern.type) || pattern.type === "await");
+  const hasPromise = patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all", "promise_allSettled", "promise_race", "promise_any", "process_nextTick"].includes(pattern.type) || pattern.type === "await");
   const hasTimer = patterns.some((pattern) => pattern.type === "setTimeout" || pattern.type === "setInterval");
   const hasSync = patterns.some((pattern) => pattern.type === "console" && pattern.phase === "sync");
 
@@ -144,7 +209,7 @@ export function explanationFromPatterns(patterns: ExtractedPattern[]): Explanati
     summary: "This is a simplified simulation of supported async patterns. It does not execute your code.",
     steps: [
       hasSync ? "Synchronous console.log calls run first on the current call stack." : "No supported synchronous console.log output was detected.",
-      hasPromise ? "Promise.then, Promise.catch, queueMicrotask, Promise.all results, and await continuations use the microtask model." : "No supported microtasks were detected.",
+      hasPromise ? "Promise callbacks, queueMicrotask, process.nextTick, Promise combinator results, and await continuations use simplified queue models." : "No supported microtasks were detected.",
       hasTimer ? "setTimeout and setInterval callbacks enter timer scheduling and run after microtasks." : "No supported timers were detected.",
       "Unsupported syntax may affect real runtime behavior and is listed in the limitations panel."
     ],

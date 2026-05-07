@@ -2,6 +2,7 @@
 
 import { BadgeCheck, MapPinned, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { SaveCaseButton } from "@/components/SaveCaseButton";
 import type { Demo } from "@/engine/types";
 
 function correctAnswer(demo: Demo) {
@@ -12,7 +13,18 @@ function correctAnswer(demo: Demo) {
 export function ClarityBrief({ demo, revealed }: { demo: Demo; revealed: boolean }) {
   return (
     <Card className="border-teal-200 bg-white">
-      <CardContent className="grid gap-3 p-4 md:grid-cols-3">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm font-semibold text-teal-900">Concept / Predict / Run / Inspect / Fix</div>
+          <SaveCaseButton
+            id={demo.id}
+            type={demo.number === 0 ? "editable" : "demo"}
+            title={demo.title}
+            href={`/demo/${demo.id}`}
+            category={demo.category}
+          />
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-md bg-teal-50 px-3 py-2">
           <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-teal-900">
             <Target className="h-4 w-4" />
@@ -33,6 +45,7 @@ export function ClarityBrief({ demo, revealed }: { demo: Demo; revealed: boolean
             Real life
           </div>
           <p className="text-sm leading-6">{demo.explanation.realWorld}</p>
+        </div>
         </div>
       </CardContent>
     </Card>

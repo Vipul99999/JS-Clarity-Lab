@@ -6,9 +6,21 @@ export type PatternKind =
   | "promise_then"
   | "promise_catch"
   | "promise_all"
+  | "promise_allSettled"
+  | "promise_race"
+  | "promise_any"
+  | "process_nextTick"
+  | "setImmediate"
+  | "fs_readFileSync"
+  | "crypto_worker"
+  | "stream_pipe"
+  | "http_route"
   | "async_function"
   | "await"
   | "async_map"
+  | "async_forEach"
+  | "missing_return_then"
+  | "floating_async_call"
   | "try_catch_await"
   | "function_call";
 
@@ -64,6 +76,59 @@ export type ExtractedPattern =
       loc?: SourceLocation;
     }
   | {
+      type: "promise_allSettled";
+      itemCount: number;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "promise_race";
+      itemCount: number;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "promise_any";
+      itemCount: number;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "process_nextTick";
+      callbackLabel?: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "setImmediate";
+      callbackLabel?: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "fs_readFileSync";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "crypto_worker";
+      method: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "stream_pipe";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "http_route";
+      method: string;
+      path: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
       type: "async_function";
       name: string;
       line: number;
@@ -78,6 +143,22 @@ export type ExtractedPattern =
     }
   | {
       type: "async_map";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "async_forEach";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "missing_return_then";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "floating_async_call";
+      name: string;
       line: number;
       loc?: SourceLocation;
     }

@@ -7,19 +7,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AnalysisResult } from "@/analyzer/patternTypes";
 import { buildDebugReport, getPredictedOutput, getRecommendedDemo } from "@/analyzer/debugReport";
+import { buildAnalyzerFixNotes } from "@/analyzer/exportNotes";
+import { copyTextSafely } from "@/security/clipboard";
+import { useDebugNotes } from "@/lib/debugNotes";
 
 export function DebugReport({ result }: { result: AnalysisResult | null }) {
   const [copied, setCopied] = useState(false);
+  const [copiedNotes, setCopiedNotes] = useState(false);
+  const [savedNotes, setSavedNotes] = useState(false);
+  const { saveNote } = useDebugNotes();
   const report = useMemo(() => buildDebugReport(result), [result]);
+  const notes = useMemo(() => buildAnalyzerFixNotes(result), [result]);
   const output = getPredictedOutput(result);
   const recommended = getRecommendedDemo(result);
 
   if (!result) return null;
 
   async function copy() {
-    await navigator.clipboard?.writeText(report);
+    await copyTextSafely(report);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
+  }
+
+  async function copyNotes() {
+    await copyTextSafely(notes);
+    saveNote({
+      title: result?.ok ? `Analyzer: ${result.patterns.length} pattern(s)` : "Analyzer parse issue",
+      body: notes,
+      source: "analyzer",
+      href: "/analyze"
+    });
+    setSavedNotes(true);
+    setCopiedNotes(true);
+    window.setTimeout(() => setCopiedNotes(false), 1400);
+    window.setTimeout(() => setSavedNotes(false), 1800);
   }
 
   return (
@@ -30,6 +51,10 @@ export function DebugReport({ result }: { result: AnalysisResult | null }) {
           <Button variant="outline" size="sm" onClick={copy}>
             {copied ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
             {copied ? "Copied" : "Copy report"}
+          </Button>
+          <Button variant="outline" size="sm" onClick={copyNotes}>
+            {copiedNotes ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+            {savedNotes ? "Saved locally" : copiedNotes ? "Copied notes" : "Copy fix notes"}
           </Button>
         </div>
       </CardHeader>

@@ -5,6 +5,7 @@ import { Check, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { EditableControl } from "@/editable/types";
 import { encodeDemoState } from "@/utils/encodeDemoState";
+import { copyTextSafely } from "@/security/clipboard";
 
 export function ShareState({
   pathname,
@@ -25,7 +26,7 @@ export function ShareState({
 
   async function copy() {
     const url = `${window.location.origin}${sharePath}`;
-    await navigator.clipboard?.writeText(url);
+    await copyTextSafely(url, 2048);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1400);
   }

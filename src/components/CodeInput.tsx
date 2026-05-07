@@ -31,7 +31,13 @@ export function CodeInput({ code, isAnalyzing, hasAnalysis, onChange, onAnalyze,
           </Button>
         </div>
       </div>
+      <div className="mb-3 grid gap-2 rounded-lg bg-cyan-50 p-3 text-sm text-cyan-950 md:grid-cols-3">
+        <div><span className="font-semibold">1. Paste small:</span> use the smallest confusing snippet.</div>
+        <div><span className="font-semibold">2. Read Practical answer:</span> likely output, risk, fix.</div>
+        <div><span className="font-semibold">3. Visualize:</span> step only the supported runtime model.</div>
+      </div>
       <textarea
+        aria-label="JavaScript code to analyze"
         value={code}
         onChange={(event) => onChange(event.currentTarget.value)}
         spellCheck={false}

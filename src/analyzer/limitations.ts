@@ -43,20 +43,7 @@ export function detectLimitations(ast: t.File): AnalyzerWarning[] {
       ) {
         warnings.push({
           title: "DOM/event listener behavior not simulated",
-          detail: "Event listeners are outside Phase 3 paste-code simulation. Use the guided memory demos for that behavior.",
-          line: path.node.loc?.start.line
-        });
-      }
-      if (
-        t.isMemberExpression(callee) &&
-        t.isIdentifier(callee.object) &&
-        callee.object.name === "Promise" &&
-        t.isIdentifier(callee.property) &&
-        ["allSettled", "race", "any"].includes(callee.property.name)
-      ) {
-        warnings.push({
-          title: "Promise combinator not simulated",
-          detail: `Promise.${callee.property.name} is recognized as complex. Phase 4 includes a simplified Promise.all model, but not this combinator.`,
+          detail: "Event listeners are outside paste-code simulation. Use the guided memory demos for that behavior.",
           line: path.node.loc?.start.line
         });
       }
