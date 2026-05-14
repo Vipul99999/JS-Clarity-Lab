@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 import { LazyNodePlayground } from "@/components/LazyNodePlayground";
 
 export const metadata: Metadata = {
@@ -19,12 +18,5 @@ export const metadata: Metadata = {
 };
 
 export default function NodePlaygroundPage() {
-  return (
-    <>
-      <LazyNodePlayground />
-      <section className="px-3 pb-6">
-        <FeedbackPrompt pageId="node-playground" context="Node Runtime Lab" />
-      </section>
-    </>
-  );
+  return <LazyNodePlayground />;
 }

@@ -27,15 +27,17 @@ export function WhatAmISeeing({ title = "What am I seeing?", variant = "button" 
       )}
 
       {open ? (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4">
-          <div className="w-full max-w-2xl rounded-xl border bg-white shadow-2xl">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4" role="dialog" aria-modal="true" aria-label="How to use this screen">
+          <button className="absolute inset-0 cursor-default" onClick={() => setOpen(false)} aria-label="Close help overlay" />
+          <div className="relative w-full max-w-2xl rounded-xl border bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
               <div>
                 <h2 className="font-semibold">How to use this screen</h2>
                 <p className="text-sm text-muted-foreground">One loop: read, predict, run, inspect, then compare the fix.</p>
               </div>
-              <button onClick={() => setOpen(false)} className="rounded-md p-2 hover:bg-slate-100" aria-label="Close help">
+              <button onClick={() => setOpen(false)} className="inline-flex items-center gap-2 rounded-md border border-black/10 px-3 py-2 text-sm font-semibold hover:bg-slate-100" aria-label="Close help">
                 <X className="h-4 w-4" />
+                Close
               </button>
             </div>
             <div className="grid gap-3 p-4 text-sm leading-6 sm:grid-cols-2">

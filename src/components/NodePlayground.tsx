@@ -85,7 +85,7 @@ function MiniButton({
       onClick={onClick}
       aria-pressed={active}
       className={cx(
-        "inline-flex h-9 shrink-0 items-center gap-2 rounded-md border px-3 text-sm font-semibold transition-all",
+        "inline-flex h-9 shrink-0 items-center gap-2 whitespace-nowrap rounded-md border px-3 text-sm font-semibold transition-all",
         active ? "border-cyan-300 bg-cyan-100 text-cyan-950" : "border-black/10 bg-white text-slate-700 hover:bg-slate-50"
       )}
     >
@@ -153,7 +153,7 @@ function Sidebar({
   onPick: (id: string) => void;
 }) {
   const content = (
-    <div className="flex h-full flex-col bg-[#111318] text-white">
+    <div className="flex h-full min-h-0 flex-col bg-[#111318] text-white">
       <div className="flex h-14 items-center justify-between border-b border-white/10 px-3">
         {!collapsed ? (
           <div>
@@ -167,7 +167,7 @@ function Sidebar({
           <X className="h-4 w-4" />
         </button>
       </div>
-      <div className="flex-1 overflow-auto px-2 py-3">
+      <div className="min-h-0 flex-1 overflow-auto px-2 py-3">
         {nodeScenarioCategories.map((category) => {
           const Icon = categoryIcons[category];
           const items = nodeScenarios.filter((item) => item.category === category);
@@ -212,7 +212,7 @@ function Sidebar({
 
   return (
     <>
-      <aside className={cx("hidden h-screen shrink-0 border-r border-white/10 lg:block", collapsed ? "w-[64px]" : "w-[292px]")}>{content}</aside>
+      <aside className={cx("sticky top-0 hidden h-screen shrink-0 self-start border-r border-white/10 lg:block", collapsed ? "w-[64px]" : "w-[292px]")}>{content}</aside>
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button className="absolute inset-0 bg-black/50" onClick={onCloseMobile} aria-label="Close sidebar backdrop" />
@@ -278,7 +278,7 @@ function Lane({
   return (
     <motion.section
       animate={active ? { boxShadow: "0 0 0 2px rgba(34,211,238,0.28), 0 18px 45px rgba(8,47,73,0.16)" } : { boxShadow: "0 0 0 0 rgba(0,0,0,0)" }}
-      className={cx("min-h-[108px] rounded-lg border p-3", toneClass, active && "ring-2 ring-cyan-300/70")}
+      className={cx("min-h-[96px] min-w-0 rounded-lg border p-3", toneClass, active && "ring-2 ring-cyan-300/70")}
     >
       <div className="mb-2 flex items-center justify-between gap-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-600">{title}</h3>
@@ -293,7 +293,7 @@ function Lane({
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: 10 }}
               transition={{ type: "spring", stiffness: 420, damping: 28 }}
-              className={cx("relative overflow-hidden rounded-md border px-2.5 py-2 text-xs font-semibold shadow-lg", itemTone)}
+              className={cx("relative min-w-0 overflow-hidden rounded-md border px-2.5 py-2 text-xs font-semibold leading-5 shadow-lg", itemTone)}
             >
               <motion.span
                 className="absolute inset-y-0 left-0 w-10 bg-white/20"
@@ -302,7 +302,7 @@ function Lane({
                 transition={{ duration: 1.4, repeat: active ? Infinity : 0, repeatDelay: 0.6 }}
               />
               <span className="mr-2 inline-block h-2 w-2 rounded-full bg-white/85 shadow-[0_0_12px_rgba(255,255,255,0.85)]" />
-              {item}
+              <span className="break-words">{item}</span>
             </motion.div>
           ))}
         </AnimatePresence>
@@ -330,6 +330,7 @@ function RuntimeVisualizer({
   const queuedWorkers = state.threadPool.filter((task) => task.status === "queued");
   const streamItems = state.streamEvents.map((item) => `${item.stream}: ${item.chunk ?? item.status}${item.bytes ? ` (${item.bytes} bytes)` : ""}`);
   const active = activePhase(state.activeEvent);
+  const hasNextTickEvents = events.some((event) => event.type.includes("nexttick"));
   const phases = [
     { label: "Call Stack", count: state.callStack.length, tone: "from-slate-700 to-slate-950", show: visible.has("callStack") || state.callStack.length > 0 },
     { label: "nextTick", count: state.nextTickQueue.length, tone: "from-rose-500 to-fuchsia-500", show: visible.has("microtasks") || state.nextTickQueue.length > 0 },
@@ -395,40 +396,30 @@ function RuntimeVisualizer({
           </div>
         </motion.section>
 
-        <section className="mb-4 rounded-xl border border-black/10 bg-slate-950 p-4 text-white shadow-[0_18px_45px_rgba(15,23,42,0.18)]">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <section className="mb-4 rounded-xl border border-black/10 bg-slate-950 p-3 text-white shadow-[0_18px_45px_rgba(15,23,42,0.16)]">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h3 className="font-semibold">Node runtime path</h3>
-              <p className="text-xs text-white/55">The active phase glows as events move through Node.</p>
+              <h3 className="text-sm font-semibold">Runtime path</h3>
+              <p className="text-xs text-white/50">Only phases used by this scenario are shown.</p>
             </div>
-            <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-semibold">{active}</span>
+            <span className="rounded-md bg-cyan-200 px-2 py-1 text-xs font-semibold text-slate-950">{active}</span>
           </div>
-          <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-6">
+          <div className="flex gap-2 overflow-x-auto pb-1">
             {phases.map((phase) => {
               const isActive = phase.label === active;
               return (
                 <motion.div
                   key={phase.label}
-                  animate={isActive ? { y: [0, -3, 0], scale: [1, 1.04, 1] } : { y: 0, scale: 1 }}
-                  transition={{ duration: 0.7, repeat: isActive ? Infinity : 0, repeatDelay: 0.6 }}
+                  animate={isActive ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+                  transition={{ duration: 0.65, repeat: isActive ? Infinity : 0, repeatDelay: 0.65 }}
                   className={cx(
-                    "relative overflow-hidden rounded-lg border p-3",
-                    isActive ? "border-cyan-200 bg-white text-slate-950 shadow-[0_0_28px_rgba(34,211,238,0.45)]" : "border-white/10 bg-white/[0.06]"
+                    "relative flex min-w-[118px] shrink-0 items-center justify-between gap-3 overflow-hidden rounded-lg border px-3 py-2",
+                    isActive ? "border-cyan-200 bg-white text-slate-950 shadow-[0_0_24px_rgba(34,211,238,0.38)]" : "border-white/10 bg-white/[0.06] text-white/80"
                   )}
                 >
-                  {isActive ? <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${phase.tone}`} /> : null}
-                  {isActive ? (
-                    <motion.div
-                      className={`absolute inset-y-0 left-0 w-10 bg-gradient-to-r ${phase.tone} opacity-20`}
-                      animate={{ x: ["-120%", "420%"] }}
-                      transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 0.4 }}
-                    />
-                  ) : null}
-                  <div className="text-[11px] font-semibold uppercase tracking-wide opacity-70">{phase.label}</div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className={`h-2.5 w-2.5 rounded-full bg-gradient-to-r ${phase.tone} shadow-[0_0_14px_currentColor]`} />
-                    <span className="text-sm font-semibold">{phase.count}</span>
-                  </div>
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full bg-gradient-to-r ${phase.tone}`} />
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold">{phase.label}</span>
+                  <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-xs font-semibold">{phase.count}</span>
                 </motion.div>
               );
             })}
@@ -453,12 +444,12 @@ function RuntimeVisualizer({
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {visible.has("callStack") ? <Lane title="Call Stack" items={state.callStack} empty="clear" tone="slate" active={active === "Call Stack"} /> : null}
-            {visible.has("microtasks") ? <Lane title="NextTick Queue" items={state.nextTickQueue} empty="none" tone="rose" active={active === "nextTick"} /> : null}
+            {visible.has("microtasks") && (viewMode === "pro" || hasNextTickEvents || state.nextTickQueue.length > 0 || active === "nextTick") ? <Lane title="NextTick Queue" items={state.nextTickQueue} empty="none" tone="rose" active={active === "nextTick"} /> : null}
             {visible.has("microtasks") ? <Lane title="Microtask Queue" items={state.microtaskQueue} empty="none" tone="cyan" active={active === "Microtasks"} /> : null}
             {visible.has("timers") ? <Lane title="Timer Queue" items={state.timerQueue} empty="none" tone="amber" active={active === "Timers"} /> : null}
-            {visible.has("io") ? <Lane title="I/O Queue" items={state.ioQueue} empty="none" tone="slate" active={active === "I/O Poll"} /> : null}
-            {visible.has("check") ? <Lane title="Check Queue" items={state.checkQueue} empty="none" tone="cyan" active={active === "Check"} /> : null}
-            {visible.has("close") ? <Lane title="Close Queue" items={state.closeQueue} empty="none" tone="rose" active={active === "Close"} /> : null}
+            {visible.has("io") && (viewMode === "pro" || state.ioQueue.length > 0 || active === "I/O Poll") ? <Lane title="I/O Queue" items={state.ioQueue} empty="none" tone="slate" active={active === "I/O Poll"} /> : null}
+            {visible.has("check") && (viewMode === "pro" || state.checkQueue.length > 0 || active === "Check") ? <Lane title="Check Queue" items={state.checkQueue} empty="none" tone="cyan" active={active === "Check"} /> : null}
+            {visible.has("close") && (viewMode === "pro" || state.closeQueue.length > 0 || active === "Close") ? <Lane title="Close Queue" items={state.closeQueue} empty="none" tone="rose" active={active === "Close"} /> : null}
           </div>
         )}
 
@@ -753,9 +744,9 @@ export function NodePlayground() {
         onPick={setScenarioId}
       />
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col bg-slate-100 lg:h-screen lg:min-h-0 lg:overflow-y-auto">
         <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur">
-          <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2 md:flex-nowrap">
+          <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2 xl:flex-nowrap">
             <button onClick={() => setMobileSidebarOpen(true)} className="rounded-md p-2 hover:bg-slate-100 lg:hidden" aria-label="Open sidebar"><Menu className="h-5 w-5" /></button>
             <button onClick={() => setSidebarCollapsed((value) => !value)} className="hidden rounded-md p-2 hover:bg-slate-100 lg:inline-flex" aria-label="Toggle sidebar">
               {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -769,10 +760,10 @@ export function NodePlayground() {
               <div className="truncate text-sm font-semibold">{scenario.title}</div>
               <div className="hidden truncate text-xs text-muted-foreground sm:block">{scenario.category} - {scenario.level}</div>
             </div>
-            <div className="ml-auto flex max-w-full shrink-0 items-center gap-1 overflow-x-auto sm:gap-2">
+            <div className="ml-auto flex max-w-full shrink-0 items-center gap-1 overflow-x-auto pb-1 sm:gap-2">
               <SaveCaseButton compact id={scenario.id} type="node" title={scenario.title} href={`/node-playground?scenario=${scenario.id}&mode=${mode}`} category={scenario.category} />
-              <Button size="sm" onClick={runVisualization}><Play className="h-4 w-4" /><span className="hidden sm:inline">Run</span></Button>
-              <Button size="sm" variant="outline" onClick={() => { setStep(0); setPlaying(false); setPredictionRevealed(false); }}><RotateCcw className="h-4 w-4" /><span className="hidden sm:inline">Reset</span></Button>
+              <Button size="sm" onClick={runVisualization}><Play className="h-4 w-4" /><span className="hidden xl:inline">Run</span></Button>
+              <Button size="sm" variant="outline" onClick={() => { setStep(0); setPlaying(false); setPredictionRevealed(false); }}><RotateCcw className="h-4 w-4" /><span className="hidden xl:inline">Reset</span></Button>
               <Button size="icon" variant="outline" className="h-8 w-8 sm:h-10 sm:w-10" disabled={step === 0} onClick={() => setStep((value) => Math.max(0, value - 1))} aria-label="Previous step"><SkipBack className="h-4 w-4" /></Button>
               <Button size="icon" variant="outline" className="h-8 w-8 sm:h-10 sm:w-10" onClick={() => setPlaying((value) => !value)} disabled={step >= max} aria-label={playing ? "Pause" : "Play"}>{playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</Button>
               <Button size="icon" variant="outline" className="h-8 w-8 sm:h-10 sm:w-10" disabled={step >= max} onClick={() => setStep((value) => Math.min(max, value + 1))} aria-label="Next step"><SkipForward className="h-4 w-4" /></Button>
