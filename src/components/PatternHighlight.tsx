@@ -14,6 +14,15 @@ const styles: Record<ExtractedPattern["type"], string> = {
   promise_allSettled: "bg-violet-50 text-violet-900 border-violet-200",
   promise_race: "bg-amber-50 text-amber-900 border-amber-200",
   promise_any: "bg-cyan-50 text-cyan-900 border-cyan-200",
+  fetch_then: "bg-sky-50 text-sky-900 border-sky-200",
+  fetch_catch: "bg-rose-50 text-rose-900 border-rose-200",
+  event_listener: "bg-lime-50 text-lime-900 border-lime-200",
+  fs_promises: "bg-indigo-50 text-indigo-900 border-indigo-200",
+  await_promise_all: "bg-violet-50 text-violet-900 border-violet-200",
+  express_middleware: "bg-blue-50 text-blue-900 border-blue-200",
+  react_effect: "bg-emerald-50 text-emerald-900 border-emerald-200",
+  react_effect_cleanup: "bg-teal-50 text-teal-900 border-teal-200",
+  fake_timer_test: "bg-orange-50 text-orange-900 border-orange-200",
   process_nextTick: "bg-pink-50 text-pink-900 border-pink-200",
   setImmediate: "bg-blue-50 text-blue-900 border-blue-200",
   fs_readFileSync: "bg-rose-50 text-rose-900 border-rose-200",
@@ -41,6 +50,15 @@ function label(pattern: ExtractedPattern) {
   if (pattern.type === "promise_allSettled") return `Promise.allSettled (${pattern.itemCount} inputs)`;
   if (pattern.type === "promise_race") return `Promise.race (${pattern.itemCount} inputs)`;
   if (pattern.type === "promise_any") return `Promise.any (${pattern.itemCount} inputs)`;
+  if (pattern.type === "fetch_then") return "fetch().then";
+  if (pattern.type === "fetch_catch") return "fetch().catch";
+  if (pattern.type === "event_listener") return `addEventListener("${pattern.eventName}")`;
+  if (pattern.type === "fs_promises") return `fs.promises.${pattern.method}`;
+  if (pattern.type === "await_promise_all") return `await Promise.all (${pattern.itemCount} inputs)`;
+  if (pattern.type === "express_middleware") return `${pattern.method} ${pattern.path} middleware${pattern.callsNext ? " -> next()" : ""}`;
+  if (pattern.type === "react_effect") return `useEffect ${pattern.hasCleanup ? "with cleanup" : "without cleanup"}`;
+  if (pattern.type === "react_effect_cleanup") return "effect cleanup";
+  if (pattern.type === "fake_timer_test") return `${pattern.framework}.${pattern.method}`;
   if (pattern.type === "process_nextTick") return "process.nextTick";
   if (pattern.type === "setImmediate") return "setImmediate";
   if (pattern.type === "fs_readFileSync") return "fs.readFileSync";

@@ -13,6 +13,15 @@ const labels: Record<PatternKind, string> = {
   promise_allSettled: "Promise.allSettled",
   promise_race: "Promise.race",
   promise_any: "Promise.any",
+  fetch_then: "fetch().then",
+  fetch_catch: "fetch().catch",
+  event_listener: "event listener",
+  fs_promises: "fs.promises",
+  await_promise_all: "await Promise.all",
+  express_middleware: "Express middleware",
+  react_effect: "React useEffect",
+  react_effect_cleanup: "React effect cleanup",
+  fake_timer_test: "fake timer test",
   process_nextTick: "process.nextTick",
   setImmediate: "setImmediate",
   fs_readFileSync: "fs.readFileSync",
@@ -52,8 +61,9 @@ export function AnalysisSummary({ result }: { result: AnalysisResult | null }) {
     acc[pattern.type] = (acc[pattern.type] ?? 0) + 1;
     return acc;
   }, {});
-  const hasMicrotasks = result.patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all", "await", "async_map"].includes(pattern.type));
-  const hasTimers = result.patterns.some((pattern) => pattern.type === "setTimeout" || pattern.type === "setInterval");
+  const hasMicrotasks = result.patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all", "promise_allSettled", "promise_race", "promise_any", "fetch_then", "fetch_catch", "fs_promises", "await_promise_all", "await", "async_map"].includes(pattern.type));
+  const hasTimers = result.patterns.some((pattern) => pattern.type === "setTimeout" || pattern.type === "setInterval" || pattern.type === "fake_timer_test");
+  const hasFramework = result.patterns.some((pattern) => ["express_middleware", "react_effect", "react_effect_cleanup"].includes(pattern.type));
 
   return (
     <Card>
@@ -81,7 +91,7 @@ export function AnalysisSummary({ result }: { result: AnalysisResult | null }) {
         </div>
         <div className="rounded-md bg-teal-50 px-3 py-2 text-teal-950">
           <span className="font-semibold">Estimated execution: </span>
-          sync code{hasMicrotasks ? " -> microtasks" : ""}{hasTimers ? " -> timers" : ""}
+          sync code{hasFramework ? " -> framework lifecycle" : ""}{hasMicrotasks ? " -> microtasks" : ""}{hasTimers ? " -> timers" : ""}
         </div>
         <div className="rounded-md bg-[#f7f9f0] px-3 py-2 text-slate-950">
           <span className="font-semibold">Confidence: </span>

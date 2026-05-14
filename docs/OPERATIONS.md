@@ -42,6 +42,7 @@ Before merging or deploying:
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm budget
 pnpm qa:browser
 ```
 
@@ -64,7 +65,7 @@ Deployment checklist:
 1. Set `NEXT_PUBLIC_SITE_URL`.
 2. Run all quality checks.
 3. Deploy preview.
-4. Test home, analyze, discover, a demo page, topic pages, and Node Runtime Lab.
+4. Test home, learning paths, notes, analyze, discover, a demo page, topic pages, and Node Runtime Lab.
 5. Verify `/robots.txt`.
 6. Verify `/sitemap.xml`.
 7. Verify `/topics/promise-vs-settimeout`.
@@ -74,14 +75,16 @@ Deployment checklist:
 
 ## Browser QA
 
-Playwright smoke tests cover key product pages. Add a browser test when a new page becomes part of the core user journey.
+Playwright smoke and visual QA tests cover key product pages. Add a browser test when a new page becomes part of the core user journey.
 
 Current core journey:
 
 - Home.
 - Start.
+- Learning Paths.
 - Discover.
 - Analyze.
+- Debug Notes.
 - Demo page.
 - Node Runtime Lab.
 - Quality dashboard.

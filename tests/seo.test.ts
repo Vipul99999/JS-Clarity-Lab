@@ -12,7 +12,7 @@ describe("SEO surface", () => {
     expect(rules.rules).toMatchObject({
       userAgent: "*",
       allow: "/",
-      disallow: ["/quality"]
+      disallow: ["/quality", "/notes", "/usability-test"]
     });
   });
 
@@ -23,6 +23,7 @@ describe("SEO surface", () => {
     expect(urls.some((url) => url.endsWith("/analyze"))).toBe(true);
     expect(urls.some((url) => url.endsWith("/node-playground"))).toBe(true);
     expect(urls.some((url) => url.endsWith("/discover"))).toBe(true);
+    expect(urls.some((url) => url.endsWith("/paths"))).toBe(true);
     expect(urls.some((url) => url.endsWith("/why"))).toBe(true);
 
     for (const topic of topicLandingPages) {

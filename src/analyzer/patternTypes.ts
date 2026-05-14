@@ -9,6 +9,15 @@ export type PatternKind =
   | "promise_allSettled"
   | "promise_race"
   | "promise_any"
+  | "fetch_then"
+  | "fetch_catch"
+  | "event_listener"
+  | "fs_promises"
+  | "await_promise_all"
+  | "express_middleware"
+  | "react_effect"
+  | "react_effect_cleanup"
+  | "fake_timer_test"
   | "process_nextTick"
   | "setImmediate"
   | "fs_readFileSync"
@@ -90,6 +99,62 @@ export type ExtractedPattern =
   | {
       type: "promise_any";
       itemCount: number;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "fetch_then";
+      callbackLabel?: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "fetch_catch";
+      callbackLabel?: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "event_listener";
+      eventName: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "fs_promises";
+      method: string;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "await_promise_all";
+      itemCount: number;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "express_middleware";
+      method: string;
+      path: string;
+      callsNext: boolean;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "react_effect";
+      hasCleanup: boolean;
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "react_effect_cleanup";
+      line: number;
+      loc?: SourceLocation;
+    }
+  | {
+      type: "fake_timer_test";
+      framework: "jest" | "vi";
+      method: string;
       line: number;
       loc?: SourceLocation;
     }

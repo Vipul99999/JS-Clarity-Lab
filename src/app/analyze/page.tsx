@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { ClarityGuardrails } from "@/components/ClarityGuardrails";
 import { Button } from "@/components/ui/button";
 import { LazyAnalysisLab } from "@/components/LazyAnalysisLab";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 
 export const metadata: Metadata = {
   title: "Analyze JavaScript Async Code",
@@ -46,6 +47,9 @@ export default function AnalyzePage() {
         <ClarityGuardrails />
       </section>
       <LazyAnalysisLab />
+      <section className="mx-auto max-w-7xl px-4 pb-8 md:px-6">
+        <FeedbackPrompt pageId="analyze" context="Analyze Code" />
+      </section>
     </main>
   );
 }

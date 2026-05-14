@@ -6,6 +6,7 @@ import { ProductAnalyticsPanel } from "@/components/ProductAnalyticsPanel";
 import { ClarityGuardrails } from "@/components/ClarityGuardrails";
 import { CanThisHelpChecker } from "@/components/CanThisHelpChecker";
 import { ProductDecisionGuide } from "@/components/ProductDecisionGuide";
+import { PremiumProductPreview } from "@/components/PremiumProductPreview";
 import {
   corePromise,
   primaryActions,
@@ -72,6 +73,58 @@ export default function Home() {
                 </Link>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <PremiumProductPreview />
+
+      <section className="mx-auto max-w-7xl px-4 py-8 md:px-6">
+        <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="rounded-xl border border-black/10 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+            <p className="text-sm font-semibold uppercase tracking-wide text-cyan-800">Public promise</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-normal">Stop guessing why JavaScript printed that.</h2>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              Pick a real confusion, predict the output, run a visual timeline, then leave with a fix note you can use in an app, test, or interview.
+            </p>
+            <div className="mt-5 grid gap-2">
+              <Link href="/demo/promise-before-timeout" className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground transition-all hover:-translate-y-0.5">
+                Start with Promise vs Timer
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/analyze" className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:bg-slate-50">
+                Analyze code safely
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/node-playground?scenario=node-queue-priority&mode=problem" className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-black/10 bg-white px-4 text-sm font-semibold transition-all hover:-translate-y-0.5 hover:bg-slate-50">
+                Open Node Runtime Lab
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+          <div className="overflow-hidden rounded-xl border border-black/10 bg-[#101217] text-white shadow-[0_18px_50px_rgba(15,23,42,0.14)]">
+            <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-cyan-100">Preview of the learning loop</div>
+            <div className="grid gap-3 p-4 md:grid-cols-2">
+              <div className="rounded-lg bg-white/[0.07] p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-white/50">Code</div>
+                <pre className="mt-3 overflow-hidden rounded-md bg-black/35 p-3 text-xs leading-6 text-cyan-100">
+                  {`console.log("A")
+setTimeout(() => console.log("B"), 0)
+Promise.resolve().then(() => console.log("C"))
+console.log("D")`}
+                </pre>
+              </div>
+              <div className="grid gap-2">
+                {["Predict first", "Run visual timeline", "Inspect queues", "Copy fix notes"].map((step, index) => (
+                  <div key={step} className="rounded-lg border border-white/10 bg-white/[0.07] px-3 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-200 text-sm font-semibold text-[#101217]">{index + 1}</span>
+                      <span className="font-semibold">{step}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>

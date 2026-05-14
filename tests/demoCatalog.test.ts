@@ -3,7 +3,7 @@ import { categories, demos } from "@/demos";
 
 describe("demo catalog", () => {
   it("ships the expanded real-world concept set", () => {
-    expect(demos).toHaveLength(50);
+    expect(demos).toHaveLength(56);
     expect(categories.map((category) => category.id)).toEqual([
       "event-loop",
       "promises",

@@ -12,6 +12,10 @@ describe("content quality pass", () => {
       expect(copy.shortAnswer.length, demo.id).toBeGreaterThan(35);
       expect(copy.realWorldBug.length, demo.id).toBeGreaterThan(60);
       expect(copy.fixedNote.length, demo.id).toBeGreaterThan(40);
+      expect(copy.wrongAssumption.length, demo.id).toBeGreaterThan(20);
+      expect(copy.fixedCode.length, demo.id).toBeGreaterThan(20);
+      expect(copy.visualProof.length, demo.id).toBeGreaterThan(50);
+      expect(copy.howToVerify.length, demo.id).toBeGreaterThan(50);
     }
   });
 

@@ -55,6 +55,68 @@ export function getAnalyzerInsights(result: AnalysisResult | null): AnalyzerInsi
     });
   }
 
+  if (has("fs_promises")) {
+    insights.push({
+      severity: "Info",
+      title: "Async filesystem promise detected",
+      detail: "fs.promises avoids blocking JavaScript, but the continuation still resumes later and can compete with other file work.",
+      action: "Open async fs case",
+      href: "/node-playground?scenario=fs-readfile-threadpool&mode=problem"
+    });
+  }
+
+  if (has("fetch_then", "fetch_catch")) {
+    insights.push({
+      severity: "Watch",
+      title: "Fetch chain detected",
+      detail: "fetch starts external work and then/catch callbacks continue later through Promise microtasks. Network timing is still simplified.",
+      action: "Open HTTP lifecycle",
+      href: "/node-playground?scenario=http-db-lifecycle&mode=problem"
+    });
+  }
+
+  if (has("express_middleware")) {
+    insights.push({
+      severity: "Watch",
+      title: "Express middleware order detected",
+      detail: "Express handlers run in registration order. A handler that does not call next or send a response can stop the chain.",
+      action: "Open middleware order",
+      href: "/node-playground?scenario=http-db-lifecycle&mode=problem"
+    });
+  }
+
+  if (has("react_effect")) {
+    insights.push({
+      severity: has("react_effect_cleanup") ? "Info" : "Risk",
+      title: has("react_effect_cleanup") ? "React effect cleanup detected" : "React effect without cleanup",
+      detail: has("react_effect_cleanup")
+        ? "The effect returns cleanup, which is the safer pattern for subscriptions, timers, and listeners."
+        : "Effects that start timers, listeners, or subscriptions without cleanup commonly cause duplicated work and memory growth.",
+      action: "Open React cleanup case",
+      href: "/demo/react-effect-cleanup-missing"
+    });
+  }
+
+  if (has("fake_timer_test")) {
+    insights.push({
+      severity: "Watch",
+      title: "Fake timer test behavior detected",
+      detail: "Fake timers flush timer callbacks, but Promise continuations may still require an explicit microtask or async flush.",
+      action: "Open fake timer case",
+      href: "/node-playground?scenario=testing-async-timers&mode=problem"
+    });
+  }
+
+  if (has("event_listener")) {
+    insights.push({
+      severity: "Watch",
+      title: "Event listener registration detected",
+      detail: "Listeners run only when the event fires later. Missing cleanup is a common source of duplicated handlers and retained memory.",
+      action: "Open listener leak",
+      href: "/demo/event-listener-leak"
+    });
+  }
+
   if (has("http_route")) {
     insights.push({
       severity: "Info",
@@ -112,6 +174,16 @@ export function getAnalyzerInsights(result: AnalysisResult | null): AnalyzerInsi
       detail: "If these awaited operations are independent, sequential awaits may be adding unnecessary latency.",
       action: "Compare sequential vs parallel",
       href: "/demo/sequential-await"
+    });
+  }
+
+  if (has("await_promise_all")) {
+    insights.push({
+      severity: "Info",
+      title: "Parallel await pattern detected",
+      detail: "await Promise.all resumes when every input fulfills. It is good for independent work but fails fast on one rejection.",
+      action: "Compare sequential and parallel",
+      href: "/demo/parallel-promise-all"
     });
   }
 

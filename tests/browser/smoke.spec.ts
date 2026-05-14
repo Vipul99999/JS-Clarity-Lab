@@ -61,6 +61,7 @@ test("start here path gives a guided learning sequence", async ({ page }) => {
 test("node playground renders dynamic runtime panels", async ({ page }) => {
   await page.goto("/node-playground");
   await expect(page.getByRole("heading", { name: "Code", exact: true })).toBeVisible();
+  await expect(page.getByTestId("node-code-view")).toContainText('console.log("sync")');
   await expect(page.getByText("Scenario library")).toBeVisible();
   await expect(page.getByText("Node queue priority").first()).toBeVisible();
   await page.getByRole("button", { name: "Visual" }).click();
@@ -74,6 +75,16 @@ test("node playground renders dynamic runtime panels", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Problem" }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Fixed" }).first()).toBeVisible();
   await expect(page.getByText("Pro Mode:")).toBeVisible();
+});
+
+test("node playground keeps code visible and sidebar usable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/node-playground?scenario=node-queue-priority&mode=problem");
+  await expect(page.getByRole("heading", { name: "Code", exact: true })).toBeVisible();
+  await expect(page.getByTestId("node-code-view")).toContainText('console.log("sync")');
+  await expect(page.getByRole("heading", { name: "Visual runtime", exact: true })).toBeVisible();
+  await page.getByLabel("Open sidebar").click();
+  await expect(page.getByRole("complementary").getByText("Scenario library - 30 cases")).toBeVisible();
 });
 
 test("editable demo exposes production playbook", async ({ page }) => {

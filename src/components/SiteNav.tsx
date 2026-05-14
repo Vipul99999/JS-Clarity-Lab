@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Brain, Code2, Compass, Gauge, Home, Lightbulb, PlayCircle, Server, Sparkles, Stethoscope } from "lucide-react";
+import { Brain, Code2, Compass, FileText, Gauge, Home, Lightbulb, PlayCircle, Route, Server, Sparkles, Stethoscope } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/start", label: "Start Here", icon: PlayCircle },
+  { href: "/paths", label: "Learning Paths", icon: Route },
   { href: "/clinic", label: "Real Bug Clinic", icon: Stethoscope },
   { href: "/concepts", label: "Concept Atlas", icon: Brain },
   { href: "/topics/javascript-event-loop-visualizer", label: "SEO Topics", icon: Lightbulb },
@@ -14,6 +15,7 @@ const navItems = [
   { href: "/analyze", label: "Analyze Code", icon: Code2 },
   { href: "/node-playground", label: "Node Runtime Lab", icon: Server },
   { href: "/discover", label: "Find Cases", icon: Compass },
+  { href: "/notes", label: "Notes", icon: FileText },
   { href: "/quality", label: "Quality", icon: Gauge }
 ];
 

@@ -32,6 +32,8 @@ function getNodeBridge(result: AnalysisResult) {
   if (patternTypes.includes("fs_readFileSync")) return { scenarioId: "fs-sync-blocks-server", reason: "Synchronous fs can block server requests." };
   if (patternTypes.includes("crypto_worker")) return { scenarioId: "threadpool-saturation", reason: "Crypto work can saturate the worker pool." };
   if (patternTypes.includes("stream_pipe")) return { scenarioId: "stream-error-handling", reason: "Streams need backpressure and cleanup reasoning." };
+  if (patternTypes.includes("express_middleware")) return { scenarioId: "http-db-lifecycle", reason: "Express middleware order changes request flow." };
+  if (patternTypes.includes("fake_timer_test")) return { scenarioId: "testing-async-timers", reason: "Fake timers can hide pending Promise continuations." };
   if (patternTypes.includes("http_route")) return { scenarioId: "http-db-lifecycle", reason: "HTTP handlers pause and resume around async work." };
   if (has("fs.readfilesync")) return { scenarioId: "fs-sync-blocks-server", reason: "Synchronous fs can block server requests." };
   if (has("fs.readfile", "fs.promises", "node:fs")) return { scenarioId: "fs-readfile-threadpool", reason: "Async fs work returns through libuv and the I/O queue." };
@@ -82,6 +84,21 @@ export function buildAnalyzerActionPlan(result: AnalysisResult | null): Analyzer
   } else if (has("promise_all")) {
     whyThisHappens = "Promise.all rejects the combined promise as soon as one input rejects.";
     fixSuggestion = "Use allSettled when partial success is valuable, or catch each branch intentionally.";
+  } else if (has("await_promise_all")) {
+    whyThisHappens = "await Promise.all starts independent work together and resumes the async function after all inputs fulfill.";
+    fixSuggestion = "Keep it for independent work, but add branch-level catches or allSettled when partial success matters.";
+  } else if (has("fetch_then", "fetch_catch")) {
+    whyThisHappens = "fetch starts external network work. then/catch callbacks run later through the Promise microtask path.";
+    fixSuggestion = "Handle errors explicitly and use AbortController for timeouts or cancellation.";
+  } else if (has("express_middleware")) {
+    whyThisHappens = "Express middleware runs in registration order. The chain only continues when a handler calls next() or sends/ends the response.";
+    fixSuggestion = "Keep middleware small, call next intentionally, and put error handlers after routes.";
+  } else if (has("react_effect")) {
+    whyThisHappens = "React effects run after render. Work started inside an effect can outlive the component unless cleanup releases it.";
+    fixSuggestion = "Return a cleanup function for subscriptions, timers, listeners, and abortable requests.";
+  } else if (has("fake_timer_test")) {
+    whyThisHappens = "Fake timers control timer callbacks, but Promise continuations still follow the microtask queue.";
+    fixSuggestion = "Flush timers and promises deliberately in tests; assert after the async queue has settled.";
   } else if (has("setInterval")) {
     whyThisHappens = "Intervals keep scheduling callbacks until cleared and can retain data through closures.";
     fixSuggestion = "Store the interval id and clear it during cleanup or shutdown.";
@@ -98,6 +115,12 @@ export function buildAnalyzerActionPlan(result: AnalysisResult | null): Analyzer
   } else if (has("stream_pipe")) {
     whyThisHappens = "Streams move chunks over time and need error, close, and backpressure handling.";
     fixSuggestion = "Prefer pipeline and test slow writable/error cases.";
+  } else if (has("fs_promises")) {
+    whyThisHappens = "fs.promises starts async filesystem work and resumes through a Promise continuation later.";
+    fixSuggestion = "Use async fs on request paths, stream large files, and limit bursts when many files are read together.";
+  } else if (has("event_listener")) {
+    whyThisHappens = "addEventListener registers future work. The callback does not run now; it runs when the event fires.";
+    fixSuggestion = "Pair every long-lived listener with cleanup, especially in components, tests, and reconnect logic.";
   } else if (has("missing_return_then")) {
     whyThisHappens = ".then callbacks pass along the returned value or promise. Missing return breaks that chain.";
     fixSuggestion = "Return the promise/value from .then or rewrite the flow with await.";

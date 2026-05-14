@@ -31,8 +31,28 @@ export function detectLimitations(ast: t.File): AnalyzerWarning[] {
       const callee = path.node.callee;
       if (t.isIdentifier(callee) && ["fetch", "axios", "requestAnimationFrame"].includes(callee.name)) {
         warnings.push({
-          title: "External API not simulated",
-          detail: `${callee.name} is detected as external work. Timing and data are not executed or inferred.`,
+          title: "External API timing is not executed",
+          detail: `${callee.name} may be detected, but network/browser timing and returned data are not executed or inferred.`,
+          line: path.node.loc?.start.line
+        });
+      }
+      if (t.isIdentifier(callee, { name: "useEffect" })) {
+        warnings.push({
+          title: "React runtime is not executed",
+          detail: "useEffect can be detected, but React render timing, dependency comparison, Strict Mode double-run, and DOM cleanup are not executed.",
+          line: path.node.loc?.start.line
+        });
+      }
+      if (
+        t.isMemberExpression(callee) &&
+        t.isIdentifier(callee.object) &&
+        ["jest", "vi"].includes(callee.object.name) &&
+        t.isIdentifier(callee.property) &&
+        callee.property.name.toLowerCase().includes("timer")
+      ) {
+        warnings.push({
+          title: "Test runner behavior is partial",
+          detail: "Fake timer calls are detected, but Jest/Vitest is not executed and promise flushing remains a simplified model.",
           line: path.node.loc?.start.line
         });
       }
@@ -42,8 +62,8 @@ export function detectLimitations(ast: t.File): AnalyzerWarning[] {
         ["addEventListener", "removeEventListener"].includes(callee.property.name)
       ) {
         warnings.push({
-          title: "DOM/event listener behavior not simulated",
-          detail: "Event listeners are outside paste-code simulation. Use the guided memory demos for that behavior.",
+          title: "Event listener behavior is partial",
+          detail: "Listener registration can be detected, but real event firing, bubbling, cleanup, and DOM state are not executed.",
           line: path.node.loc?.start.line
         });
       }

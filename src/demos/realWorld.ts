@@ -401,5 +401,213 @@ console.log("sync");`,
       mistake: "Assuming DOM observers behave like setTimeout callbacks.",
       realWorld: "This matters in component libraries, rich text editors, analytics trackers, test utilities, and DOM measurement code."
     }
+  },
+  {
+    id: "react-effect-cleanup-missing",
+    number: 51,
+    title: "React effect cleanup missing",
+    category: "real-world",
+    concept: "Effects that register timers or listeners must clean them up or old work keeps running after the component is gone.",
+    code: `useEffect(() => {
+  const id = setInterval(sync, 1000);
+  window.addEventListener("resize", measure);
+}, []);`,
+    prediction: {
+      type: "mcq",
+      question: "What keeps running after unmount?",
+      options: ["Nothing", "Interval and listener", "Only render"],
+      correct: "Interval and listener"
+    },
+    events: [
+      { type: "stack_push", name: "mount effect" },
+      { type: "line", line: 2 },
+      { type: "timer_add", name: "sync interval", delay: 1000 },
+      { type: "memory_allocate", id: "component-state", label: "component state", size: 1 },
+      { type: "line", line: 3 },
+      { type: "memory_retain", id: "component-state", reason: "resize listener closure" },
+      { type: "stack_pop", name: "mount effect" },
+      { type: "gc_attempt", result: "not_collected", reason: "interval and listener still reference component work" },
+      { type: "console", value: "still syncing" }
+    ],
+    explanation: {
+      summary: "The effect creates long-lived work but never returns cleanup.",
+      steps: ["The interval starts.", "The listener captures component values.", "Unmount does not remove either one.", "GC cannot collect retained state."],
+      mistake: "Assuming React automatically clears timers and browser listeners.",
+      realWorld: "This appears in dashboards, resize measurement, polling widgets, analytics listeners, and components that mount/unmount often."
+    }
+  },
+  {
+    id: "next-server-action-missing-await",
+    number: 52,
+    title: "Next.js server action missing await",
+    category: "real-world",
+    concept: "A server action can return success before persistence finishes if async work is started but not awaited.",
+    code: `export async function save(formData) {
+  db.user.update({ data: formData });
+  revalidatePath("/profile");
+  return { ok: true };
+}`,
+    prediction: {
+      type: "mcq",
+      question: "What can happen before the database update finishes?",
+      options: ["Success response", "Nothing", "The process stops"],
+      correct: "Success response"
+    },
+    events: [
+      { type: "stack_push", name: "server action" },
+      { type: "line", line: 2 },
+      { type: "webapi_add", name: "db update", detail: "Promise started but not awaited" },
+      { type: "line", line: 3 },
+      { type: "console", value: "revalidate profile" },
+      { type: "line", line: 4 },
+      { type: "console", value: "return ok" },
+      { type: "stack_pop", name: "server action" },
+      { type: "timeline_wait", duration: 80, reason: "database work finishes later" },
+      { type: "webapi_remove", name: "db update" }
+    ],
+    explanation: {
+      summary: "The mutation promise is created, but the action does not wait for it before returning.",
+      steps: ["The database update starts.", "The action keeps going.", "The response returns success.", "The database finishes later or may fail unobserved."],
+      mistake: "Forgetting that server actions still need await for real dependencies.",
+      realWorld: "This causes stale pages, early success toasts, lost errors, and confusing production logs in Next.js apps."
+    }
+  },
+  {
+    id: "vitest-fake-timers-microtasks",
+    number: 53,
+    title: "Vitest fake timers and microtasks",
+    category: "real-world",
+    concept: "Advancing timers is not the same as flushing promise jobs in tests.",
+    code: `vi.useFakeTimers();
+retryLater();
+await vi.advanceTimersByTimeAsync(1000);
+await Promise.resolve();`,
+    prediction: {
+      type: "mcq",
+      question: "Why is the final await useful?",
+      options: ["Flush promise continuations", "Create a timer", "Block the test"],
+      correct: "Flush promise continuations"
+    },
+    events: [
+      { type: "stack_push", name: "test" },
+      { type: "line", line: 2 },
+      { type: "timer_add", name: "retry timer", delay: 1000 },
+      { type: "line", line: 3 },
+      { type: "timer_run", name: "retry timer" },
+      { type: "microtask_add", name: "retry promise continuation" },
+      { type: "line", line: 4, explain: "The explicit await gives promise continuations a turn." },
+      { type: "microtask_run", name: "retry promise continuation" },
+      { type: "console", value: "retry settled" },
+      { type: "stack_pop", name: "test" }
+    ],
+    explanation: {
+      summary: "Timer helpers and Promise continuations are related but still distinct scheduling steps.",
+      steps: ["The retry timer is scheduled.", "The fake clock advances.", "The timer callback schedules promise work.", "The final await lets the continuation settle."],
+      mistake: "Expecting fake timers to prove every async assertion is ready.",
+      realWorld: "This reduces flaky Vitest/Jest tests around retries, debounce, polling, loaders, and React async state."
+    }
+  },
+  {
+    id: "express-slow-route-blocking",
+    number: 54,
+    title: "Express slow route blocking",
+    category: "real-world",
+    concept: "CPU-heavy work inside a request handler blocks unrelated requests on the same event loop.",
+    code: `app.get("/report", (req, res) => {
+  const pdf = buildHugeReportSync();
+  res.send(pdf);
+});`,
+    prediction: {
+      type: "mcq",
+      question: "What happens to another request during buildHugeReportSync?",
+      options: ["It waits", "It runs in parallel on the same thread", "It cancels"],
+      correct: "It waits"
+    },
+    events: [
+      { type: "stack_push", name: "GET /report" },
+      { type: "line", line: 2 },
+      { type: "performance_block", duration: 850, reason: "PDF generation blocks the event loop" },
+      { type: "timer_add", name: "GET /health waiting" },
+      { type: "line", line: 3 },
+      { type: "console", value: "report sent" },
+      { type: "stack_pop", name: "GET /report" },
+      { type: "timer_run", name: "GET /health waiting" },
+      { type: "console", value: "health delayed" }
+    ],
+    explanation: {
+      summary: "The route monopolizes the event loop until synchronous CPU work finishes.",
+      steps: ["The report request starts.", "Synchronous generation blocks JavaScript.", "Other callbacks wait.", "The delayed request runs after the stack clears."],
+      mistake: "Calling CPU-heavy synchronous work from latency-sensitive request handlers.",
+      realWorld: "This affects PDF generation, image transforms, CSV exports, encryption, large JSON parsing, and analytics aggregation in Express/Fastify APIs."
+    }
+  },
+  {
+    id: "file-upload-stream-backpressure",
+    number: 55,
+    title: "File upload backpressure bug",
+    category: "real-world",
+    concept: "Ignoring stream backpressure lets upload buffers grow faster than the destination can write.",
+    code: `req.on("data", (chunk) => {
+  writable.write(chunk);
+});`,
+    prediction: {
+      type: "mcq",
+      question: "What grows if writable.write keeps returning false?",
+      options: ["Buffered memory", "Call stack", "Nothing"],
+      correct: "Buffered memory"
+    },
+    events: [
+      { type: "stack_push", name: "upload handler" },
+      { type: "line", line: 1 },
+      { type: "webapi_add", name: "upload stream" },
+      { type: "line", line: 2 },
+      { type: "memory_allocate", id: "upload-buffer", label: "queued chunks", size: 4 },
+      { type: "memory_retain", id: "upload-buffer", reason: "destination is slower than source" },
+      { type: "timeline_wait", duration: 120, reason: "more chunks arrive before drain" },
+      { type: "memory_retain", id: "upload-buffer", reason: "backpressure ignored" },
+      { type: "gc_attempt", result: "not_collected", reason: "chunks are still queued for writing" }
+    ],
+    explanation: {
+      summary: "The readable side keeps pushing while the writable side is already behind.",
+      steps: ["Upload chunks arrive.", "The app writes without checking pressure.", "The destination slows down.", "Queued chunks retain memory."],
+      mistake: "Ignoring the false return value from writable.write or avoiding pipeline.",
+      realWorld: "This causes upload memory spikes, slow proxies, stalled file imports, and high RSS in Node services."
+    }
+  },
+  {
+    id: "redis-cache-memory-growth",
+    number: 56,
+    title: "Redis/cache memory growth",
+    category: "real-world",
+    concept: "Unbounded in-process caches retain data even when Redis or the database is the real source of truth.",
+    code: `const cache = new Map();
+
+async function getUser(id) {
+  if (!cache.has(id)) cache.set(id, await redis.get(id));
+  return cache.get(id);
+}`,
+    prediction: {
+      type: "mcq",
+      question: "What happens as unique ids keep arriving?",
+      options: ["Map keeps growing", "GC clears old ids automatically", "Redis deletes the Map"],
+      correct: "Map keeps growing"
+    },
+    events: [
+      { type: "stack_push", name: "server" },
+      { type: "line", line: 1 },
+      { type: "memory_allocate", id: "cache", label: "in-process Map", size: 1 },
+      { type: "line", line: 4 },
+      { type: "memory_allocate", id: "user:1", label: "cached user 1", size: 1 },
+      { type: "memory_retain", id: "user:1", reason: "Map entry has no TTL" },
+      { type: "memory_allocate", id: "user:2", label: "cached user 2", size: 1 },
+      { type: "memory_retain", id: "user:2", reason: "Map entry has no size limit" },
+      { type: "gc_attempt", result: "not_collected", reason: "cache still references every value" }
+    ],
+    explanation: {
+      summary: "The Map is a long-lived reference, so every cached value stays reachable.",
+      steps: ["The process creates a Map.", "Each new id stores another value.", "No TTL or max size removes entries.", "GC cannot collect reachable values."],
+      mistake: "Assuming Redis TTL protects a separate in-process cache.",
+      realWorld: "This shows up in API gateways, profile caches, feature flag caches, permission lookups, and hot service processes."
+    }
   }
 ];

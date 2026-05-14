@@ -12,7 +12,9 @@ const requiredDocs = [
   "docs/SEO.md",
   "docs/OPERATIONS.md",
   "docs/CONTRIBUTING.md",
-  "docs/LAUNCH_PACKAGE.md"
+  "docs/LAUNCH_PACKAGE.md",
+  "docs/DEPLOYMENT_READINESS.md",
+  "docs/USABILITY_TEST.md"
 ];
 
 describe("documentation set", () => {

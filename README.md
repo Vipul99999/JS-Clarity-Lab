@@ -138,6 +138,8 @@ The current Node scenario library covers 30 cases across fundamentals, async, ev
 - SEO metadata, sitemap, robots rules, and structured data.
 - Focused SEO topic landing pages.
 - Launch package with tagline, screenshots plan, demo video plan, release checklist, and Vercel deployment notes.
+- Learning paths and a local debug notes workspace.
+- Visual QA screenshots and bundle budget checks.
 
 ## Safety Model
 
@@ -242,6 +244,7 @@ pnpm start
 pnpm typecheck
 pnpm test
 pnpm build
+pnpm budget
 pnpm qa:browser
 ```
 
@@ -256,6 +259,8 @@ The test suite protects:
 - Security headers.
 - SEO sitemap and robots output.
 - Browser smoke rendering.
+- Visual QA screenshots for desktop and mobile surfaces.
+- Bundle budget checks for heavy routes.
 
 ## SEO
 
@@ -285,6 +290,7 @@ See `docs/SEO.md` for the full SEO model.
 - `docs/OPERATIONS.md` explains local development, QA, deployment, and release checks.
 - `docs/CONTRIBUTING.md` explains how to add or improve cases safely.
 - `docs/LAUNCH_PACKAGE.md` contains the tagline, launch copy, screenshots plan, demo GIF/video plan, release checklist, and Vercel notes.
+- `docs/DEPLOYMENT_READINESS.md` contains deployment, analytics, monitoring, accessibility, and release-gate decisions.
 
 ## Product Positioning
 

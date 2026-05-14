@@ -13,6 +13,10 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
   const promiseAllSettleds = patterns.filter((pattern) => pattern.type === "promise_allSettled");
   const promiseRaces = patterns.filter((pattern) => pattern.type === "promise_race");
   const promiseAnys = patterns.filter((pattern) => pattern.type === "promise_any");
+  const fetchThens = patterns.filter((pattern) => pattern.type === "fetch_then");
+  const fetchCatches = patterns.filter((pattern) => pattern.type === "fetch_catch");
+  const fsPromises = patterns.filter((pattern) => pattern.type === "fs_promises");
+  const awaitPromiseAlls = patterns.filter((pattern) => pattern.type === "await_promise_all");
   const nextTicks = patterns.filter((pattern) => pattern.type === "process_nextTick");
   const immediates = patterns.filter((pattern) => pattern.type === "setImmediate");
   const awaits = patterns.filter((pattern) => pattern.type === "await");
@@ -83,6 +87,46 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
       events.push({ type: "webapi_add", name: `Promise.any line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
       events.push({ type: "microtask_add", name: `Promise.any first fulfillment line ${pattern.line}` });
     }
+    if (pattern.type === "fetch_then") {
+      events.push({ type: "line", line: pattern.line, explain: "fetch starts network work; .then continues later as a Promise microtask." });
+      events.push({ type: "webapi_add", name: `fetch line ${pattern.line}`, detail: "network request" });
+      events.push({ type: "microtask_add", name: pattern.callbackLabel ? `fetch.then: ${pattern.callbackLabel}` : `fetch.then line ${pattern.line}` });
+    }
+    if (pattern.type === "fetch_catch") {
+      events.push({ type: "line", line: pattern.line, explain: "fetch error handling continues later through a Promise rejection microtask." });
+      events.push({ type: "microtask_add", name: pattern.callbackLabel ? `fetch.catch: ${pattern.callbackLabel}` : `fetch.catch line ${pattern.line}` });
+    }
+    if (pattern.type === "event_listener") {
+      events.push({ type: "line", line: pattern.line, explain: `${pattern.eventName} listener is registered. Its callback runs only when that event happens later.` });
+      events.push({ type: "webapi_add", name: `${pattern.eventName} listener`, detail: "event listener" });
+    }
+    if (pattern.type === "express_middleware") {
+      events.push({ type: "line", line: pattern.line, explain: `${pattern.method} ${pattern.path} middleware runs in registration order${pattern.callsNext ? " and calls next()" : " and may stop the chain if it does not call next()"}.` });
+      events.push({ type: "stack_push", name: `${pattern.method} ${pattern.path} middleware` });
+      events.push({ type: "stack_pop", name: `${pattern.method} ${pattern.path} middleware` });
+    }
+    if (pattern.type === "react_effect") {
+      events.push({ type: "line", line: pattern.line, explain: `React useEffect runs after render${pattern.hasCleanup ? " and registers cleanup" : "; no cleanup was detected"}.` });
+      events.push({ type: "webapi_add", name: `useEffect line ${pattern.line}`, detail: pattern.hasCleanup ? "effect with cleanup" : "effect without cleanup" });
+      if (!pattern.hasCleanup) events.push({ type: "memory_retain", id: `effect-${pattern.line}`, reason: "No cleanup detected for effect work." });
+    }
+    if (pattern.type === "react_effect_cleanup") {
+      events.push({ type: "memory_release", id: `effect-${pattern.line}` });
+    }
+    if (pattern.type === "fake_timer_test") {
+      events.push({ type: "line", line: pattern.line, explain: `${pattern.framework}.${pattern.method} changes how timer callbacks are flushed in tests. Promises may still need a microtask flush.` });
+      events.push({ type: "timer_add", name: `${pattern.framework}.${pattern.method}` });
+    }
+    if (pattern.type === "fs_promises") {
+      events.push({ type: "line", line: pattern.line, explain: `fs.promises.${pattern.method} starts async filesystem work and resumes through a Promise continuation.` });
+      events.push({ type: "webapi_add", name: `fs.promises.${pattern.method}`, detail: "filesystem promise" });
+      events.push({ type: "microtask_add", name: `fs promise result line ${pattern.line}` });
+    }
+    if (pattern.type === "await_promise_all") {
+      events.push({ type: "line", line: pattern.line, explain: `await Promise.all starts ${pattern.itemCount || "multiple"} promise(s) and resumes when all fulfill in this simplified model.` });
+      events.push({ type: "webapi_add", name: `await Promise.all line ${pattern.line}`, detail: `${pattern.itemCount || "unknown"} inputs` });
+      events.push({ type: "microtask_add", name: `await Promise.all continuation line ${pattern.line}` });
+    }
     if (pattern.type === "async_map") {
       events.push({ type: "line", line: pattern.line, explain: "Array.map with an async callback creates promises for each item. This model does not expand every item." });
       events.push({ type: "microtask_add", name: `async map callbacks line ${pattern.line}` });
@@ -134,6 +178,35 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     events.push({ type: "stack_pop", name });
   }
 
+  for (const pattern of fetchThens) {
+    const name = pattern.callbackLabel ? `fetch.then: ${pattern.callbackLabel}` : `fetch.then line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "When the simplified fetch resolves, the .then callback runs as a microtask." });
+    events.push({ type: "webapi_remove", name: `fetch line ${pattern.line}` });
+    if (pattern.callbackLabel) events.push({ type: "console", value: pattern.callbackLabel });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of fetchCatches) {
+    const name = pattern.callbackLabel ? `fetch.catch: ${pattern.callbackLabel}` : `fetch.catch line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "Fetch rejection handlers run as Promise microtasks after the failed external work settles." });
+    if (pattern.callbackLabel) events.push({ type: "console", value: pattern.callbackLabel });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of fsPromises) {
+    const name = `fs promise result line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "The filesystem promise continuation resumes after the async fs work completes." });
+    events.push({ type: "webapi_remove", name: `fs.promises.${pattern.method}` });
+    events.push({ type: "stack_pop", name });
+  }
+
+  for (const pattern of awaitPromiseAlls) {
+    const name = `await Promise.all continuation line ${pattern.line}`;
+    events.push({ type: "microtask_run", name, explain: "The async function resumes after every Promise.all input fulfills." });
+    events.push({ type: "webapi_remove", name: `await Promise.all line ${pattern.line}` });
+    events.push({ type: "stack_pop", name });
+  }
+
   for (const pattern of awaits) {
     const name = `await continuation line ${pattern.line}`;
     events.push({ type: "microtask_run", name, explain: "The async function resumes from the await point." });
@@ -173,7 +246,7 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
     events.push({ type: "line", line: asyncFns[0].line, explain: "Async declarations alone do not execute until called." });
   }
 
-  if (syncLogs.length === 0 && promiseThens.length === 0 && promiseCatches.length === 0 && queuedMicrotasks.length === 0 && timers.length === 0 && intervals.length === 0 && awaits.length === 0 && promiseAlls.length === 0 && promiseAllSettleds.length === 0 && promiseRaces.length === 0 && promiseAnys.length === 0 && nextTicks.length === 0 && immediates.length === 0) {
+  if (syncLogs.length === 0 && promiseThens.length === 0 && promiseCatches.length === 0 && queuedMicrotasks.length === 0 && timers.length === 0 && intervals.length === 0 && awaits.length === 0 && promiseAlls.length === 0 && promiseAllSettleds.length === 0 && promiseRaces.length === 0 && promiseAnys.length === 0 && fetchThens.length === 0 && fetchCatches.length === 0 && fsPromises.length === 0 && awaitPromiseAlls.length === 0 && nextTicks.length === 0 && immediates.length === 0) {
     events.push({ type: "console", value: "No simulated console output" });
   }
 
@@ -183,7 +256,7 @@ export function generateEventsFromPatterns(patterns: ExtractedPattern[]): Visual
 export function predictionFromPatterns(patterns: ExtractedPattern[]): Prediction {
   const sync = patterns.flatMap((pattern) => (pattern.type === "console" && pattern.phase === "sync" ? [pattern.value] : []));
   const micro = patterns.flatMap((pattern) =>
-    (pattern.type === "process_nextTick" || pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask") && pattern.callbackLabel ? [pattern.callbackLabel] : []
+    (pattern.type === "process_nextTick" || pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask" || pattern.type === "fetch_then" || pattern.type === "fetch_catch") && pattern.callbackLabel ? [pattern.callbackLabel] : []
   );
   const timers = patterns
     .flatMap((pattern) => ((pattern.type === "setTimeout" || pattern.type === "setInterval") && pattern.callbackLabel ? [pattern] : []))
@@ -201,7 +274,7 @@ export function predictionFromPatterns(patterns: ExtractedPattern[]): Prediction
 }
 
 export function explanationFromPatterns(patterns: ExtractedPattern[]): Explanation {
-  const hasPromise = patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all", "promise_allSettled", "promise_race", "promise_any", "process_nextTick"].includes(pattern.type) || pattern.type === "await");
+  const hasPromise = patterns.some((pattern) => ["promise_then", "promise_catch", "queueMicrotask", "promise_all", "promise_allSettled", "promise_race", "promise_any", "fetch_then", "fetch_catch", "fs_promises", "await_promise_all", "process_nextTick"].includes(pattern.type) || pattern.type === "await");
   const hasTimer = patterns.some((pattern) => pattern.type === "setTimeout" || pattern.type === "setInterval");
   const hasSync = patterns.some((pattern) => pattern.type === "console" && pattern.phase === "sync");
 

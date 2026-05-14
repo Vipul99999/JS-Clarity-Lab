@@ -39,6 +39,67 @@ describe("paste-code analyzer", () => {
     expect(result.confidence).toBe("Medium");
   });
 
+  it("detects fetch, event listeners, fs.promises, and await Promise.all", async () => {
+    const result = await analyzeCode(`
+      fetch("/api/users").then(() => console.log("loaded"));
+      window.addEventListener("resize", () => console.log("resize"));
+      fs.promises.readFile("users.json");
+      async function loadAll() {
+        await Promise.all([fetch("/a"), fetch("/b")]);
+      }
+      console.log("sync");
+    `);
+
+    const types = result.patterns.map((pattern) => pattern.type);
+    expect(types).toEqual(expect.arrayContaining(["fetch_then", "event_listener", "fs_promises", "await_promise_all"]));
+
+    const simulation = buildSimulation(result);
+    const output = simulation.events.filter((event) => event.type === "console").map((event) => ("value" in event ? event.value : ""));
+    expect(output).toEqual(expect.arrayContaining(["sync", "loaded"]));
+    expect(output.indexOf("sync")).toBeLessThan(output.indexOf("loaded"));
+
+    const plan = buildAnalyzerActionPlan(result);
+    expect(plan?.matchingDemo?.href).toContain("/node-playground");
+    expect(result.warnings.some((warning) => warning.title.includes("External API timing"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.title.includes("Event listener behavior"))).toBe(true);
+  });
+
+  it("detects real-world framework and test snippets", async () => {
+    const result = await analyzeCode(`
+      app.use("/api", (req, res, next) => {
+        console.log("middleware");
+        next();
+      });
+
+      fetch("/api/users")
+        .then(() => console.log("loaded"))
+        .catch(() => console.log("failed"));
+
+      useEffect(() => {
+        const id = setInterval(() => console.log("tick"), 1000);
+        return () => clearInterval(id);
+      }, []);
+
+      vi.useFakeTimers();
+      vi.advanceTimersByTime(1000);
+    `);
+
+    const types = result.patterns.map((pattern) => pattern.type);
+    expect(types).toEqual(expect.arrayContaining([
+      "express_middleware",
+      "fetch_then",
+      "fetch_catch",
+      "react_effect",
+      "react_effect_cleanup",
+      "fake_timer_test"
+    ]));
+
+    const plan = buildAnalyzerActionPlan(result);
+    expect(plan?.riskFound).toMatch(/Fetch|middleware|React|timer|Simulation/);
+    expect(result.trustNotes.some((note) => note.includes("React effects"))).toBe(true);
+    expect(result.trustNotes.some((note) => note.includes("Fake timer"))).toBe(true);
+  });
+
   it("detects modern Node and Promise combinator patterns with insights", async () => {
     const result = await analyzeCode(`
       process.nextTick(() => console.log("tick"));
@@ -122,6 +183,6 @@ describe("paste-code analyzer", () => {
     `);
 
     expect(result.warnings.some((warning) => warning.title.includes("loop") || warning.title.includes("Loop"))).toBe(true);
-    expect(result.warnings.some((warning) => warning.title.includes("External API"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.title.includes("External API timing"))).toBe(true);
   });
 });

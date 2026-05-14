@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SaveCaseButton } from "@/components/SaveCaseButton";
 import { TrustBadge } from "@/components/TrustBadge";
+import { FeedbackPrompt } from "@/components/FeedbackPrompt";
 import { demos, editableDemos, getDemo, getEditableDemo, getNextDemoId } from "@/demos";
 import { buildDemoPageCopy } from "@/product/demoCopy";
 import { LazyEditableDemoSurface, LazyVisualizerSurface } from "@/components/LazyDemoSurfaces";
@@ -113,11 +114,27 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
                 <p className="mt-1 text-muted-foreground">{pageCopy?.realWorldBug ?? editableExplanation?.realWorld}</p>
               </div>
               <div>
+                <div className="font-semibold">Common wrong assumption</div>
+                <p className="mt-1 text-muted-foreground">{pageCopy?.wrongAssumption ?? editableExplanation?.mistake}</p>
+              </div>
+              <div>
                 <div className="flex items-center gap-2 font-semibold">
                   <Wrench className="h-4 w-4 text-cyan-700" />
                   Fix direction
                 </div>
                 <p className="mt-1 text-muted-foreground">{pageCopy?.fixedNote ?? editableExplanation?.mistake}</p>
+              </div>
+              <div>
+                <div className="font-semibold">Fixed code pattern</div>
+                <pre className="mt-2 overflow-x-auto rounded-md bg-slate-950 p-3 text-xs leading-5 text-cyan-100">{pageCopy?.fixedCode ?? "// Change the safe controls, then compare the generated fixed behavior."}</pre>
+              </div>
+              <div>
+                <div className="font-semibold">Visual proof</div>
+                <p className="mt-1 text-muted-foreground">{pageCopy?.visualProof ?? "Change the controls and watch the generated timeline reset so the changed behavior is visible."}</p>
+              </div>
+              <div>
+                <div className="font-semibold">How to verify in a real app</div>
+                <p className="mt-1 text-muted-foreground">{pageCopy?.howToVerify ?? "Reproduce the small case, apply the safer pattern, and verify output, timing, or memory before and after the change."}</p>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <SaveCaseButton id={editableDemo?.id ?? demo!.id} type={editableDemo ? "editable" : "demo"} title={title} href={`/demo/${editableDemo?.id ?? demo!.id}`} category={category} />
@@ -165,6 +182,9 @@ export default async function DemoPage({ params }: { params: Promise<{ id: strin
             ))}
           </div>
         </section>
+        <div className="mt-6">
+          <FeedbackPrompt pageId={`demo:${editableDemo?.id ?? demo!.id}`} context={title} />
+        </div>
       </section>
     </main>
   );

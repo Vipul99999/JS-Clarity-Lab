@@ -10,6 +10,15 @@ const demoByPattern: Partial<Record<ExtractedPattern["type"], { id: string; labe
   promise_allSettled: { id: "promise-allsettled-errors", label: "Promise.all vs allSettled" },
   promise_race: { id: "promise-race-any", label: "Promise.race vs Promise.any" },
   promise_any: { id: "promise-race-any", label: "Promise.race vs Promise.any" },
+  fetch_then: { id: "http-db-lifecycle", label: "Fetch then continuation" },
+  fetch_catch: { id: "try-catch-await", label: "Fetch error handling" },
+  event_listener: { id: "event-listener-leak", label: "Event listener cleanup" },
+  fs_promises: { id: "fs-readfile-threadpool", label: "fs.promises async file work" },
+  await_promise_all: { id: "parallel-promise-all", label: "await Promise.all" },
+  express_middleware: { id: "http-db-lifecycle", label: "Express middleware order" },
+  react_effect: { id: "react-effect-cleanup-missing", label: "React effect cleanup" },
+  react_effect_cleanup: { id: "react-effect-cleanup-missing", label: "React effect cleanup" },
+  fake_timer_test: { id: "testing-async-timers", label: "Fake timers and promises" },
   process_nextTick: { id: "process-nexttick-priority", label: "process.nextTick priority" },
   setImmediate: { id: "node-setimmediate-io", label: "setImmediate ordering" },
   fs_readFileSync: { id: "fs-sync-blocks-server", label: "readFileSync blocks server" },
@@ -37,7 +46,7 @@ export function getPredictedOutput(result: AnalysisResult | null) {
   if (!result?.ok) return [];
   const sync = result.patterns.flatMap((pattern) => (pattern.type === "console" && pattern.phase === "sync" ? [pattern.value] : []));
   const micro = result.patterns.flatMap((pattern) =>
-    (pattern.type === "process_nextTick" || pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask") && pattern.callbackLabel ? [pattern.callbackLabel] : []
+    (pattern.type === "process_nextTick" || pattern.type === "promise_then" || pattern.type === "promise_catch" || pattern.type === "queueMicrotask" || pattern.type === "fetch_then" || pattern.type === "fetch_catch") && pattern.callbackLabel ? [pattern.callbackLabel] : []
   );
   const combinators = result.patterns.flatMap((pattern) =>
     pattern.type === "promise_allSettled" ? ["allSettled outcomes ready"] : pattern.type === "promise_race" ? ["race settled first"] : pattern.type === "promise_any" ? ["any fulfilled first"] : []

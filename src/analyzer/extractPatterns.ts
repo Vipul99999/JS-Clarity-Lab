@@ -80,6 +80,25 @@ function isPromiseRejectCatch(node: t.CallExpression) {
   );
 }
 
+function isFetchThen(node: t.CallExpression) {
+  if (!t.isMemberExpression(node.callee)) return false;
+  if (!t.isIdentifier(node.callee.property, { name: "then" })) return false;
+  const object = node.callee.object;
+  return t.isCallExpression(object) && t.isIdentifier(object.callee, { name: "fetch" });
+}
+
+function isFetchCatch(node: t.CallExpression) {
+  if (!t.isMemberExpression(node.callee)) return false;
+  if (!t.isIdentifier(node.callee.property, { name: "catch" })) return false;
+  let object: t.Node = node.callee.object;
+  while (t.isCallExpression(object) && t.isMemberExpression(object.callee)) {
+    const calleeObject: t.Expression | t.Super = object.callee.object;
+    if (t.isCallExpression(calleeObject) && t.isIdentifier(calleeObject.callee, { name: "fetch" })) return true;
+    object = calleeObject;
+  }
+  return t.isCallExpression(object) && t.isIdentifier(object.callee, { name: "fetch" });
+}
+
 function promiseStaticMethod(node: t.CallExpression) {
   if (
     t.isMemberExpression(node.callee) &&
@@ -141,6 +160,26 @@ function isStreamPipe(node: t.CallExpression) {
   return t.isMemberExpression(node.callee) && t.isIdentifier(node.callee.property, { name: "pipe" });
 }
 
+function eventListenerName(node: t.CallExpression) {
+  if (!t.isMemberExpression(node.callee)) return undefined;
+  if (!t.isIdentifier(node.callee.property, { name: "addEventListener" })) return undefined;
+  return literalValue(node.arguments[0] as t.Node | undefined);
+}
+
+function fsPromisesMethod(node: t.CallExpression) {
+  if (!t.isMemberExpression(node.callee) || !t.isIdentifier(node.callee.property)) return undefined;
+  const object = node.callee.object;
+  if (
+    t.isMemberExpression(object) &&
+    t.isIdentifier(object.object, { name: "fs" }) &&
+    t.isIdentifier(object.property, { name: "promises" })
+  ) {
+    return node.callee.property.name;
+  }
+  if (t.isIdentifier(object, { name: "fsPromises" })) return node.callee.property.name;
+  return undefined;
+}
+
 function httpRoute(node: t.CallExpression) {
   if (!t.isMemberExpression(node.callee)) return undefined;
   if (!t.isIdentifier(node.callee.object, { name: "app" }) && !t.isIdentifier(node.callee.object, { name: "router" }) && !t.isIdentifier(node.callee.object, { name: "server" })) return undefined;
@@ -148,6 +187,39 @@ function httpRoute(node: t.CallExpression) {
   const method = node.callee.property.name;
   if (!["get", "post", "put", "patch", "delete", "use"].includes(method)) return undefined;
   return { method: method.toUpperCase(), path: literalValue(node.arguments[0] as t.Node | undefined) };
+}
+
+function expressMiddleware(node: t.CallExpression) {
+  const route = httpRoute(node);
+  if (!route) return undefined;
+  const handler = node.arguments.find((argument) => t.isFunctionExpression(argument) || t.isArrowFunctionExpression(argument));
+  let callsNext = false;
+  if (handler && (t.isFunctionExpression(handler) || t.isArrowFunctionExpression(handler))) {
+    t.traverseFast(handler.body, (inner) => {
+      if (t.isCallExpression(inner) && t.isIdentifier(inner.callee, { name: "next" })) callsNext = true;
+    });
+  }
+  return { ...route, callsNext };
+}
+
+function reactEffectInfo(node: t.CallExpression) {
+  if (!t.isIdentifier(node.callee, { name: "useEffect" })) return undefined;
+  const callback = node.arguments[0];
+  if (!callback || (!t.isArrowFunctionExpression(callback) && !t.isFunctionExpression(callback))) return { hasCleanup: false };
+  let hasCleanup = false;
+  if (t.isBlockStatement(callback.body)) {
+    hasCleanup = callback.body.body.some((statement) => t.isReturnStatement(statement) && Boolean(statement.argument));
+  }
+  return { hasCleanup };
+}
+
+function fakeTimerMethod(node: t.CallExpression) {
+  if (!t.isMemberExpression(node.callee) || !t.isIdentifier(node.callee.object) || !t.isIdentifier(node.callee.property)) return undefined;
+  const framework = node.callee.object.name;
+  if (framework !== "jest" && framework !== "vi") return undefined;
+  const method = node.callee.property.name;
+  if (!["useFakeTimers", "runAllTimers", "advanceTimersByTime", "runOnlyPendingTimers", "useRealTimers"].includes(method)) return undefined;
+  return { framework, method } as const;
 }
 
 function missingReturnInThen(node: t.CallExpression) {
@@ -183,14 +255,20 @@ function callbackConsoleLabel(callback: t.Node | null | undefined) {
 }
 
 function phaseForConsole(path: NodePath<t.CallExpression>): "sync" | "microtask" | "timer" | "async" {
-  const timerParent = path.findParent((parent) => parent.isCallExpression() && isSetTimeout(parent.node));
+  const timerParent = path.findParent((parent) => parent.isCallExpression() && (isSetTimeout(parent.node) || isSetInterval(parent.node) || isSetImmediate(parent.node)));
   if (timerParent) return "timer";
   const promiseParent = path.findParent((parent) => parent.isCallExpression() && isPromiseResolveThen(parent.node));
   if (promiseParent) return "microtask";
+  const fetchThenParent = path.findParent((parent) => parent.isCallExpression() && isFetchThen(parent.node));
+  if (fetchThenParent) return "microtask";
+  const fetchCatchParent = path.findParent((parent) => parent.isCallExpression() && isFetchCatch(parent.node));
+  if (fetchCatchParent) return "microtask";
   const queueMicrotaskParent = path.findParent((parent) => parent.isCallExpression() && isQueueMicrotask(parent.node));
   if (queueMicrotaskParent) return "microtask";
   const nextTickParent = path.findParent((parent) => parent.isCallExpression() && isProcessNextTick(parent.node));
   if (nextTickParent) return "microtask";
+  const listenerParent = path.findParent((parent) => parent.isCallExpression() && Boolean(eventListenerName(parent.node)));
+  if (listenerParent) return "async";
   const asyncParent = path.findParent((parent) => parent.isFunction() && Boolean(parent.node.async));
   if (asyncParent) return "async";
   return "sync";
@@ -213,6 +291,7 @@ export function extractPatterns(ast: t.File): ExtractedPattern[] {
       patterns.push({ type: "async_function", name, line: line(path.node), loc: loc(path.node) });
     },
     AwaitExpression(path) {
+      if (t.isCallExpression(path.node.argument) && isPromiseAll(path.node.argument)) return;
       const guarded = Boolean(path.findParent((parent) => parent.isTryStatement()));
       patterns.push({ type: "await", label: "await continuation", guarded, line: line(path.node), loc: loc(path.node) });
       if (guarded) {
@@ -264,6 +343,16 @@ export function extractPatterns(ast: t.File): ExtractedPattern[] {
         patterns.push({ type: "fs_readFileSync", line: line(node), loc: loc(node) });
         return;
       }
+      const fsMethod = fsPromisesMethod(node);
+      if (fsMethod) {
+        patterns.push({ type: "fs_promises", method: fsMethod, line: line(node), loc: loc(node) });
+        return;
+      }
+      const timerMethod = fakeTimerMethod(node);
+      if (timerMethod) {
+        patterns.push({ type: "fake_timer_test", framework: timerMethod.framework, method: timerMethod.method, line: line(node), loc: loc(node) });
+        return;
+      }
       if (isCryptoWorker(node)) {
         patterns.push({ type: "crypto_worker", method: memberName(node.callee) ?? "crypto work", line: line(node), loc: loc(node) });
         return;
@@ -272,9 +361,21 @@ export function extractPatterns(ast: t.File): ExtractedPattern[] {
         patterns.push({ type: "stream_pipe", line: line(node), loc: loc(node) });
         return;
       }
-      const route = httpRoute(node);
-      if (route) {
-        patterns.push({ type: "http_route", method: route.method, path: route.path, line: line(node), loc: loc(node) });
+      const eventName = eventListenerName(node);
+      if (eventName) {
+        patterns.push({ type: "event_listener", eventName, line: line(node), loc: loc(node) });
+        return;
+      }
+      const middleware = expressMiddleware(node);
+      if (middleware) {
+        patterns.push({ type: "http_route", method: middleware.method, path: middleware.path, line: line(node), loc: loc(node) });
+        patterns.push({ type: "express_middleware", method: middleware.method, path: middleware.path, callsNext: middleware.callsNext, line: line(node), loc: loc(node) });
+        return;
+      }
+      const effect = reactEffectInfo(node);
+      if (effect) {
+        patterns.push({ type: "react_effect", hasCleanup: effect.hasCleanup, line: line(node), loc: loc(node) });
+        if (effect.hasCleanup) patterns.push({ type: "react_effect_cleanup", line: line(node), loc: loc(node) });
         return;
       }
       if (isQueueMicrotask(node)) {
@@ -314,7 +415,34 @@ export function extractPatterns(ast: t.File): ExtractedPattern[] {
         });
         return;
       }
+      if (isFetchThen(node)) {
+        patterns.push({
+          type: "fetch_then",
+          callbackLabel: callbackConsoleLabel(node.arguments[0] as t.Node | undefined),
+          line: line(node),
+          loc: loc(node)
+        });
+        return;
+      }
+      if (isFetchCatch(node)) {
+        patterns.push({
+          type: "fetch_catch",
+          callbackLabel: callbackConsoleLabel(node.arguments[0] as t.Node | undefined),
+          line: line(node),
+          loc: loc(node)
+        });
+        return;
+      }
       if (isPromiseAll(node)) {
+        if (path.findParent((parent) => parent.isAwaitExpression())) {
+          patterns.push({
+            type: "await_promise_all",
+            itemCount: promiseItemCount(node),
+            line: line(node),
+            loc: loc(node)
+          });
+          return;
+        }
         patterns.push({
           type: "promise_all",
           itemCount: promiseItemCount(node),

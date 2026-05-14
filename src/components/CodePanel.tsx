@@ -1,7 +1,7 @@
 "use client";
 
 import Editor, { type OnMount } from "@monaco-editor/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { editor } from "monaco-editor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -14,11 +14,19 @@ type CodePanelProps = {
 export function CodePanel({ code, currentLine, editableBadge }: CodePanelProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const decorationsRef = useRef<editor.IEditorDecorationsCollection | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   const handleMount: OnMount = (instance) => {
     editorRef.current = instance;
     decorationsRef.current = instance.createDecorationsCollection();
+    setEditorReady(true);
   };
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setShowFallback(true), 1600);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   useEffect(() => {
     if (!editorRef.current || !decorationsRef.current) return;
@@ -48,24 +56,41 @@ export function CodePanel({ code, currentLine, editableBadge }: CodePanelProps) 
         </div>
       </CardHeader>
       <CardContent className="h-[430px] p-0">
-        <Editor
-          height="100%"
-          defaultLanguage="javascript"
-          value={code}
-          theme="vs-light"
-          onMount={handleMount}
-          options={{
-            readOnly: true,
-            minimap: { enabled: false },
-            fontSize: 14,
-            lineHeight: 22,
-            scrollBeyondLastLine: false,
-            folding: false,
-            renderLineHighlight: "none",
-            overviewRulerLanes: 0,
-            padding: { top: 16, bottom: 16 }
-          }}
-        />
+        {showFallback && !editorReady ? (
+          <div className="h-full overflow-auto bg-[#101217] py-3 font-mono text-[13px] leading-6 text-slate-100" role="code" aria-label="Code fallback view">
+            {code.split("\n").map((line, index) => {
+              const lineNumber = index + 1;
+              const active = lineNumber === Math.max(1, currentLine);
+              return (
+                <div key={`${lineNumber}-${line}`} className={`grid min-w-max grid-cols-[48px_minmax(0,1fr)] border-l-4 pr-4 ${active ? "border-cyan-300 bg-cyan-300/16 text-white" : "border-transparent"}`}>
+                  <span className={`select-none px-3 text-right text-xs ${active ? "text-cyan-200" : "text-slate-500"}`}>{lineNumber}</span>
+                  <span className="whitespace-pre">{line || " "}</span>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
+        {!showFallback || editorReady ? (
+          <Editor
+            height="100%"
+            defaultLanguage="javascript"
+            value={code}
+            theme="vs-light"
+            onMount={handleMount}
+            loading={<div className="flex h-full items-center justify-center bg-[#101217] p-4 text-sm text-cyan-100">Opening code view...</div>}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              fontSize: 14,
+              lineHeight: 22,
+              scrollBeyondLastLine: false,
+              folding: false,
+              renderLineHighlight: "none",
+              overviewRulerLanes: 0,
+              padding: { top: 16, bottom: 16 }
+            }}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

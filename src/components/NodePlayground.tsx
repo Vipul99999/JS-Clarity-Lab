@@ -1,10 +1,8 @@
 "use client";
 
-import Editor, { type OnMount } from "@monaco-editor/react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { editor } from "monaco-editor";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -226,51 +224,28 @@ function Sidebar({
 }
 
 function NodeCodeEditor({ code, currentLine }: { code: string; currentLine: number }) {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const decorationsRef = useRef<editor.IEditorDecorationsCollection | null>(null);
-
-  const handleMount: OnMount = (instance) => {
-    editorRef.current = instance;
-    decorationsRef.current = instance.createDecorationsCollection();
-  };
-
-  useEffect(() => {
-    if (!editorRef.current || !decorationsRef.current) return;
-    decorationsRef.current.set([
-      {
-        range: {
-          startLineNumber: Math.max(1, currentLine),
-          startColumn: 1,
-          endLineNumber: Math.max(1, currentLine),
-          endColumn: 1
-        },
-        options: {
-          isWholeLine: true,
-          className: "node-active-line-highlight",
-          linesDecorationsClassName: "node-active-line-glyph"
-        }
-      }
-    ]);
-    editorRef.current.revealLineInCenterIfOutsideViewport(Math.max(1, currentLine));
-  }, [currentLine]);
-
+  const lines = code.split("\n");
   return (
-    <Editor
-      height="100%"
-      defaultLanguage="javascript"
-      value={code}
-      theme="vs-dark"
-      onMount={handleMount}
-      options={{
-        minimap: { enabled: false },
-        fontSize: 14,
-        lineHeight: 22,
-        scrollBeyondLastLine: false,
-        renderLineHighlight: "none",
-        overviewRulerLanes: 0,
-        padding: { top: 14, bottom: 14 }
-      }}
-    />
+    <div className="h-full overflow-auto bg-[#101217] p-0 font-mono text-[13px] leading-6 text-slate-100" role="code" aria-label="Scenario code with current execution line" data-testid="node-code-view">
+      <div className="min-w-max py-3">
+        {lines.map((line, index) => {
+          const lineNumber = index + 1;
+          const active = lineNumber === Math.max(1, currentLine);
+          return (
+            <div
+              key={`${lineNumber}-${line}`}
+              className={cx(
+                "grid grid-cols-[48px_minmax(0,1fr)] border-l-4 pr-4",
+                active ? "border-cyan-300 bg-cyan-300/16 text-white shadow-[inset_0_0_0_1px_rgba(34,211,238,0.14)]" : "border-transparent"
+              )}
+            >
+              <span className={cx("select-none px-3 text-right text-xs", active ? "text-cyan-200" : "text-slate-500")}>{lineNumber}</span>
+              <span className="whitespace-pre">{line || " "}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -769,7 +744,7 @@ export function NodePlayground() {
   }
 
   return (
-    <main className="flex min-h-screen bg-slate-100">
+    <main className="flex min-h-screen bg-slate-100 lg:h-screen lg:overflow-hidden">
       <Sidebar
         current={scenario}
         collapsed={sidebarCollapsed}
@@ -778,7 +753,7 @@ export function NodePlayground() {
         onPick={setScenarioId}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
         <header className="sticky top-0 z-40 border-b border-black/10 bg-white/95 backdrop-blur">
           <div className="flex min-h-14 flex-wrap items-center gap-2 px-3 py-2 md:flex-nowrap">
             <button onClick={() => setMobileSidebarOpen(true)} className="rounded-md p-2 hover:bg-slate-100 lg:hidden" aria-label="Open sidebar"><Menu className="h-5 w-5" /></button>
@@ -821,7 +796,7 @@ export function NodePlayground() {
         </header>
 
         <section className="grid min-h-0 min-w-0 flex-1 gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_minmax(390px,0.95fr)]">
-          <section className="flex min-h-[520px] min-w-0 flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)] lg:h-[calc(100vh-126px)]">
+          <section className="flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-xl border border-black/10 bg-white shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:min-h-[520px] lg:h-[calc(100vh-126px)]">
             <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3">
               <div>
                 <h1 className="text-base font-semibold">Code</h1>
@@ -847,7 +822,7 @@ export function NodePlayground() {
             </div>
           </section>
 
-          <section className="min-h-[520px] min-w-0 lg:h-[calc(100vh-126px)]">
+          <section className="min-h-[460px] min-w-0 sm:min-h-[520px] lg:h-[calc(100vh-126px)]">
             <RuntimeVisualizer scenario={scenario} state={state} viewMode={viewMode} events={events} step={step} />
           </section>
         </section>
